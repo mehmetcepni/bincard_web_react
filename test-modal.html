@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.3s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold mb-4">Modal Test</h1>
+        <p class="mb-4">Bu sayfada login modal'ını test edebilirsiniz.</p>
+        <button id="testModalBtn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+            Modal'ı Test Et
+        </button>
+    </div>
+
+    <script>
+        // AuthService mock
+        const AuthService = {
+            isAuthenticated: () => false, // Test için false döndür
+
+            showLoginConfirmModal: (actionName = 'Bu işlemi', navigate) => {
+                return new Promise((resolve) => {
+                    const isLoggedIn = AuthService.isAuthenticated();
+                    if (isLoggedIn) {
+                        resolve(true);
+                        return;
+                    }
+
+                    // Unique ID oluştur
+                    const modalId = 'loginModal_' + Date.now();
+                    const yesButtonId = 'loginConfirmYes_' + Date.now();
+                    const noButtonId = 'loginConfirmNo_' + Date.now();
+
+                    // Modal oluştur
+                    const modal = document.createElement('div');
+                    modal.id = modalId;
+                    modal.className = 'fixed inset-0 z-[1000] flex items-center justify-center p-4';
+                    modal.style.background = 'rgba(0, 0, 0, 0.7)';
+                    modal.style.backdropFilter = 'blur(8px)';
+                    modal.style.WebkitBackdropFilter = 'blur(8px)';
+                    
+                    modal.innerHTML = `
+                        <div class="relative bg-white rounded-3xl max-w-md w-full shadow-2xl border border-gray-200 overflow-hidden animate-fade-in-up">
+                        <!-- Header -->
+                        <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 text-center">
+                            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            </div>
+                            <h3 class="text-xl font-bold">Giriş Gerekli</h3>
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="p-6 text-center">
+                            <p class="text-gray-700 text-lg mb-2 font-semibold">${actionName} gerçekleştirmek için</p>
+                            <p class="text-gray-600 mb-6">giriş yapmanız gerekiyor.</p>
+                            <p class="text-blue-600 font-medium">Giriş yapmak ister misiniz?</p>
+                        </div>
+                        
+                        <!-- Buttons -->
+                        <div class="flex gap-3 p-6 pt-0">
+                            <button 
+                            id="${noButtonId}" 
+                            class="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all duration-200 font-medium"
+                            type="button"
+                            >
+                            Hayır
+                            </button>
+                            <button 
+                            id="${yesButtonId}" 
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all duration-200 font-bold shadow-lg transform hover:scale-105"
+                            type="button"
+                            >
+                            Evet, Giriş Yap
+                            </button>
+                        </div>
+                        </div>
+                    `;
+
+                    // Modal'ı DOM'a ekle
+                    document.body.appendChild(modal);
+
+                    // Event handler fonksiyonları
+                    const handleYesClick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('✅ Evet butonuna tıklandı, login sayfasına yönlendiriliyor...');
+                        alert('Evet butonuna tıklandı! Login sayfasına yönlendirilecek.');
+                        modal.remove();
+                        document.removeEventListener('keydown', handleEscPress);
+                        resolve(true);
+                    };
+
+                    const handleNoClick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('❌ Hayır butonuna tıklandı, modal kapatılıyor...');
+                        alert('Hayır butonuna tıklandı! Modal kapatılacak.');
+                        modal.remove();
+                        document.removeEventListener('keydown', handleEscPress);
+                        resolve(false);
+                    };
+
+                    const handleModalClick = (e) => {
+                        if (e.target === modal) {
+                            console.log('🔽 Modal dışına tıklandı, modal kapatılıyor...');
+                            modal.remove();
+                            document.removeEventListener('keydown', handleEscPress);
+                            resolve(false);
+                        }
+                    };
+
+                    const handleEscPress = (e) => {
+                        if (e.key === 'Escape') {
+                            console.log('⌨️ ESC tuşuna basıldı, modal kapatılıyor...');
+                            modal.remove();
+                            document.removeEventListener('keydown', handleEscPress);
+                            resolve(false);
+                        }
+                    };
+
+                    // DOM elemanları yüklendikten sonra event listener'ları ekle
+                    setTimeout(() => {
+                        const yesButton = document.getElementById(yesButtonId);
+                        const noButton = document.getElementById(noButtonId);
+
+                        console.log('🔍 Modal butonları kontrol ediliyor:', {
+                            yesButton: !!yesButton,
+                            noButton: !!noButton,
+                            yesButtonId,
+                            noButtonId
+                        });
+
+                        if (yesButton && noButton) {
+                            console.log('✅ Butonlar bulundu, event listener\'lar ekleniyor...');
+                            
+                            // Event listener'ları ekle
+                            yesButton.addEventListener('click', handleYesClick);
+                            noButton.addEventListener('click', handleNoClick);
+                            modal.addEventListener('click', handleModalClick);
+                            document.addEventListener('keydown', handleEscPress);
+
+                            // Test için butonları konsola yazdır
+                            console.log('🎯 Event listener\'lar başarıyla eklendi:', {
+                                yesButton: yesButton.textContent,
+                                noButton: noButton.textContent
+                            });
+                        } else {
+                            console.error('❌ Butonlar bulunamadı!', {
+                                yesButtonFound: !!yesButton,
+                                noButtonFound: !!noButton,
+                                modalHTML: modal.innerHTML
+                            });
+                        }
+                    }, 100); // 100ms bekle
+                });
+            }
+        };
+
+        // Mock navigate function
+        const mockNavigate = (path) => {
+            console.log('Navigate to:', path);
+            alert('Navigate to: ' + path);
+        };
+
+        // Test butonu
+        document.getElementById('testModalBtn').addEventListener('click', async () => {
+            console.log('Test butonu tıklandı, modal açılıyor...');
+            const result = await AuthService.showLoginConfirmModal('Test işlemini', mockNavigate);
+            console.log('Modal sonucu:', result);
+        });
+    </script>
+</body>
+</html>
