@@ -4,40 +4,6 @@ const BASE_URL = 'http://localhost:8080/v1/api';
 
 class PaymentPointService {
   
-  // Tüm ödeme noktalarını getir
-  async getAllPaymentPoints() {
-    try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      
-      const response = await fetch(`${BASE_URL}/payment-point`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` })
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          AuthService.logout();
-          throw new Error('Oturum süresi doldu. Lütfen tekrar giriş yapın.');
-        }
-        throw new Error(`Ödeme noktaları alınamadı: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        return data.data.content || [];
-      } else {
-        throw new Error(data.message || 'Ödeme noktaları alınamadı');
-      }
-    } catch (error) {
-      console.error('❌ Ödeme noktaları servisi hatası:', error);
-      throw error;
-    }
-  }
-
   // ID ile belirli bir ödeme noktasını getir
   async getPaymentPointById(id) {
     try {

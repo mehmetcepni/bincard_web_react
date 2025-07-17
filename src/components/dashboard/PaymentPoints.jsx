@@ -4,10 +4,87 @@ import PaymentPointService from '../../services/payment-point.service';
 import AuthService from '../../services/auth.service';
 import { toast } from 'react-toastify';
 import NewsImage from '../ui/NewsImage';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { useRef } from 'react';
+
+// Marker icons
+const blueIcon = new L.Icon({
+  iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+const redIcon = new L.Icon({
+  iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+// Async popup for payment point details
+function PaymentPointPopup({ pointId }) {
+  const [loading, setLoading] = React.useState(true);
+  const [details, setDetails] = React.useState(null);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setError(null);
+    setDetails(null);
+    PaymentPointService.getPaymentPointById(pointId)
+      .then(data => {
+        let point = data && data.data ? data.data : data;
+        if (mounted) {
+          setDetails(point);
+          setLoading(false);
+        }
+      })
+      .catch(err => {
+        if (mounted) {
+          setError(err.message);
+          setLoading(false);
+        }
+      });
+    return () => { mounted = false; };
+  }, [pointId]);
+
+  if (loading) return <div className="p-4 text-center text-sm">Yükleniyor...</div>;
+  if (error) return <div className="p-4 text-center text-red-600 text-sm">Hata: {error}</div>;
+  if (!details) return <div className="p-4 text-center text-sm">Detay bulunamadı.</div>;
+
+  // Açık/Kapalı durumu
+  const isOpen = PaymentPointService.isOpen(details.workingHours);
+
+  return (
+    <div className="min-w-[180px] max-w-[240px] p-0 flex flex-col items-center gap-2">
+      <div className="font-bold text-base text-blue-800 text-center truncate w-full" title={details.name}>{details.name}</div>
+      <div className="flex flex-wrap justify-center gap-1 w-full mt-1">
+        {details.paymentMethods && details.paymentMethods.length > 0 ? (
+          PaymentPointService.formatPaymentMethods(details.paymentMethods).map((m, i) => (
+            <span key={i} className="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">{m}</span>
+          ))
+        ) : (
+          <span className="text-gray-400 text-xs">Ödeme tipi yok</span>
+        )}
+      </div>
+      <div className={`mt-2 px-3 py-1 rounded-full text-xs font-bold shadow-sm ${isOpen ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}
+        style={{letterSpacing: '0.5px'}}>
+        {isOpen ? 'AÇIK' : 'KAPALI'}
+      </div>
+    </div>
+  );
+}
 
 const PaymentPoints = () => {
   const navigate = useNavigate();
-  const [paymentPoints, setPaymentPoints] = useState([]);
+  const [nearbyPoints, setNearbyPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
@@ -15,10 +92,10 @@ const PaymentPoints = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState('pending');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showNearbyOnly, setShowNearbyOnly] = useState(false);
-  const [nearbyPoints, setNearbyPoints] = useState([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [searchMode, setSearchMode] = useState(false); // Arama modu takibi
+  const mapRef = useRef();
+  const [selectedMapPointId, setSelectedMapPointId] = useState(null);
 
   // Auth kontrolü
   useEffect(() => {
@@ -48,7 +125,6 @@ const PaymentPoints = () => {
   }, [navigate]);
 
   useEffect(() => {
-    fetchPaymentPoints();
     requestLocation();
   }, []);
 
@@ -167,7 +243,6 @@ const PaymentPoints = () => {
       }
 
       setNearbyPoints(formattedNearbyPoints);
-      setShowNearbyOnly(true);
       setSearchMode(false); // Yakındakiler modu, arama değil
       
       // Detaylı bilgilendirme mesajları
@@ -219,75 +294,6 @@ const PaymentPoints = () => {
         timestamp: new Date().toLocaleString('tr-TR'),
         loadingState: 'false'
       });
-    }
-  };
-
-  // Ödeme noktalarını getir
-  const fetchPaymentPoints = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const points = await PaymentPointService.getAllPaymentPoints();
-      
-      // Ödeme noktalarını formatla
-      const formattedPoints = points.map(point => ({
-        ...point,
-        formattedPaymentMethods: PaymentPointService.formatPaymentMethods(point.paymentMethods),
-        isOpen: PaymentPointService.isOpen(point.workingHours),
-        photos: point.photos || []
-      }));
-
-      setPaymentPoints(formattedPoints);
-    } catch (err) {
-      console.error('❌ Ödeme noktaları yüklenirken hata:', err);
-      setError(err.message);
-      
-      // Test verisi ile devam et
-      const testPoints = [
-        {
-          id: 1,
-          name: "Merkez Ödeme Noktası",
-          location: { latitude: 40.998, longitude: 29.123 },
-          address: {
-            street: "Atatürk Caddesi No:123",
-            district: "Kadıköy",
-            city: "İstanbul",
-            postalCode: "34000"
-          },
-          contactNumber: "+90 216 123 45 67",
-          workingHours: "09:00 - 18:00",
-          paymentMethods: ["CREDIT_CARD", "CASH"],
-          formattedPaymentMethods: ["Kredi Kartı", "Nakit"],
-          description: "Merkez şubemiz, haftanın 7 günü hizmet vermektedir.",
-          active: true,
-          photos: [],
-          isOpen: true
-        },
-        {
-          id: 2,
-          name: "Avrupa Yakası Ödeme Noktası",
-          location: { latitude: 41.005, longitude: 28.976 },
-          address: {
-            street: "İstiklal Caddesi No:45",
-            district: "Beyoğlu",
-            city: "İstanbul",
-            postalCode: "34430"
-          },
-          contactNumber: "+90 212 987 65 43",
-          workingHours: "10:00 - 19:00",
-          paymentMethods: ["CREDIT_CARD", "DEBIT_CARD"],
-          formattedPaymentMethods: ["Kredi Kartı", "Banka Kartı"],
-          description: "Avrupa yakasındaki en büyük ödeme noktası.",
-          active: true,
-          photos: [],
-          isOpen: true
-        }
-      ];
-      
-      setPaymentPoints(testPoints);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -361,18 +367,36 @@ const PaymentPoints = () => {
     window.open(`tel:${phoneNumber}`);
   };
 
-  // Filtreleme - API araması varsa filtreleme yapma, sadece sonuçları göster
-  const displayedPoints = showNearbyOnly ? nearbyPoints : paymentPoints;
-  
-  // Eğer showNearbyOnly true ise (yakınlar veya arama sonucu), filtreleme yapma
-  // Sadece normal ödeme noktaları görüntüleniyorsa local filtreleme yap
-  const filteredPaymentPoints = showNearbyOnly 
-    ? displayedPoints 
-    : displayedPoints.filter(point =>
-        point.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        point.address.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        point.address.district.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  // filteredPaymentPoints'i nearbyPoints'e göre ayarla
+  const filteredPaymentPoints = React.useMemo(() => {
+    if (!nearbyPoints || nearbyPoints.length === 0) return [];
+    if (!searchTerm.trim()) return nearbyPoints;
+    const term = searchTerm.trim().toLowerCase();
+    return nearbyPoints.filter(point =>
+      point.name.toLowerCase().includes(term) ||
+      (point.address && (
+        point.address.city?.toLowerCase().includes(term) ||
+        point.address.district?.toLowerCase().includes(term) ||
+        point.address.street?.toLowerCase().includes(term)
+      ))
+    );
+  }, [nearbyPoints, searchTerm]);
+
+  // Kartlardaki 📍 butonu için fonksiyon
+  const handleMapFocus = (point) => {
+    setSelectedMapPointId(point.id);
+    if (mapRef.current && point.location && point.location.latitude && point.location.longitude) {
+      mapRef.current.setView([point.location.latitude, point.location.longitude], 15, { animate: true });
+    }
+  };
+
+  // userLocation değiştiğinde nearbyPoints otomatik yüklensin
+  useEffect(() => {
+    if (userLocation && locationPermission === 'granted') {
+      fetchNearbyPaymentPoints();
+    }
+    // eslint-disable-next-line
+  }, [userLocation, locationPermission]);
 
   if (loading) {
     return (
@@ -399,7 +423,7 @@ const PaymentPoints = () => {
         {/* Header */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-            <h1 className="text-2xl font-bold text-blue-800 mb-2 md:mb-0">Ödeme Noktaları</h1>
+            <h1 className="text-2xl font-bold text-blue-800 mb-2 md:mb-0">Yakındaki Ödeme Noktaları</h1>
             
             {/* Konum Durumu */}
             <div className={`flex items-center px-4 py-2 rounded-lg text-sm ${
@@ -422,7 +446,7 @@ const PaymentPoints = () => {
           </div>
           
           <p className="text-gray-600 mb-4">
-            BinCard yükleme ve ödeme işlemlerinizi yapabileceğiniz en yakın noktaları keşfedin.
+            Konumunuza en yakın bakiye yükleme ve ödeme noktalarını harita ve liste üzerinden görüntüleyin.
           </p>
 
           {/* Arama ve Filtreler */}
@@ -468,9 +492,8 @@ const PaymentPoints = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    if (showNearbyOnly) {
+                    if (searchMode) {
                       // Filtreyi kaldır
-                      setShowNearbyOnly(false);
                       setSearchMode(false);
                       setSearchTerm('');
                       setNearbyPoints([]);
@@ -484,7 +507,7 @@ const PaymentPoints = () => {
                   }}
                   disabled={nearbyLoading}
                   className={`px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
-                    showNearbyOnly && !searchMode
+                    searchMode
                       ? 'bg-blue-600 text-white hover:bg-blue-700' 
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   } ${nearbyLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -498,15 +521,14 @@ const PaymentPoints = () => {
                       Yükleniyor...
                     </span>
                   ) : (
-                    showNearbyOnly ? <>📍 Yakınımdakiler Kapat</> : <>📍 Yakınımdakiler ({showNearbyOnly ? nearbyPoints.length : '?'})</>
+                    searchMode ? <>📍 Yakınımdakiler Kapat</> : <>📍 Yakınımdakiler ({nearbyPoints.length})</>
                   )}
                 </button>
                 
-                {(showNearbyOnly || searchMode) && (
+                {(searchMode) && (
                   <button
                     onClick={() => {
                       console.log('🧹 [CLEAR] Arama/Yakın noktalar temizleniyor');
-                      setShowNearbyOnly(false);
                       setSearchMode(false);
                       setSearchTerm('');
                       setNearbyPoints([]);
@@ -519,7 +541,7 @@ const PaymentPoints = () => {
                     }}
                     className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 font-medium transition whitespace-nowrap"
                   >
-                    {searchMode ? 'Aramayı Temizle' : 'Tümünü Göster'}
+                    Aramayı Temizle
                   </button>
                 )}
               </div>
@@ -529,26 +551,26 @@ const PaymentPoints = () => {
           {/* İstatistikler */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-blue-50 p-3 rounded-lg text-center">
-              <div className="text-2xl font-bold text-blue-600">{displayedPoints.length}</div>
+              <div className="text-2xl font-bold text-blue-600">{filteredPaymentPoints.length}</div>
               <div className="text-sm text-blue-700">
-                {showNearbyOnly ? 'Yakın Nokta' : 'Toplam Nokta'}
+                {searchMode ? 'Arama Sonuçları' : 'Yakın Nokta'}
               </div>
             </div>
             <div className="bg-green-50 p-3 rounded-lg text-center">
               <div className="text-2xl font-bold text-green-600">
-                {displayedPoints.filter(p => p.isOpen).length}
+                {filteredPaymentPoints.filter(p => p.isOpen).length}
               </div>
               <div className="text-sm text-green-700">Şu An Açık</div>
             </div>
             <div className="bg-purple-50 p-3 rounded-lg text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {displayedPoints.filter(p => p.paymentMethods && p.paymentMethods.includes('QR_CODE')).length}
+                {filteredPaymentPoints.filter(p => p.paymentMethods && p.paymentMethods.includes('QR_CODE')).length}
               </div>
               <div className="text-sm text-purple-700">QR Kod Destekli</div>
             </div>
             <div className="bg-orange-50 p-3 rounded-lg text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {displayedPoints.filter(p => p.paymentMethods && p.paymentMethods.includes('CASH')).length}
+                {filteredPaymentPoints.filter(p => p.paymentMethods && p.paymentMethods.includes('CASH')).length}
               </div>
               <div className="text-sm text-orange-700">Nakit Kabul Eden</div>
             </div>
@@ -556,7 +578,7 @@ const PaymentPoints = () => {
         </div>
 
         {/* Error Message */}
-        {error && !showNearbyOnly && (
+        {error && !searchMode && (
           <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
             <div className="flex items-center">
               <svg className="w-5 h-5 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -568,7 +590,7 @@ const PaymentPoints = () => {
         )}
 
         {/* Yakın Noktalar/Arama Bilgi */}
-        {showNearbyOnly && (
+        {searchMode && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center">
               <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -590,6 +612,48 @@ const PaymentPoints = () => {
             </div>
           </div>
         )}
+
+        {/* Map Section */}
+        <div className="mb-8">
+          <MapContainer
+            center={userLocation ? [userLocation.latitude, userLocation.longitude] : [39.925533, 32.866287]} // Default: Ankara
+            zoom={userLocation ? 11 : 6}
+            style={{ height: '350px', width: '100%', borderRadius: '1rem', boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}
+            scrollWheelZoom={true}
+            whenCreated={mapInstance => { mapRef.current = mapInstance; }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {/* User Location Marker */}
+            {userLocation && (
+              <Marker position={[userLocation.latitude, userLocation.longitude]} icon={blueIcon}>
+                <Popup>Mevcut Konumunuz</Popup>
+              </Marker>
+            )}
+            {/* Only show nearby payment points on the map */}
+            {filteredPaymentPoints.map(point => (
+              point.location && point.location.latitude && point.location.longitude && (
+                <Marker
+                  key={point.id}
+                  position={[
+                    point.location.latitude,
+                    point.location.longitude
+                  ]}
+                  icon={redIcon}
+                  eventHandlers={{
+                    popupopen: () => setSelectedMapPointId(point.id)
+                  }}
+                >
+                  <Popup autoPan={true} open={selectedMapPointId === point.id}>
+                    <PaymentPointPopup pointId={point.id} />
+                  </Popup>
+                </Marker>
+              )
+            ))}
+          </MapContainer>
+        </div>
 
         {/* Payment Points Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -667,7 +731,7 @@ const PaymentPoints = () => {
                     Detaylar
                   </button>
                   <button
-                    onClick={() => window.open(getMapLink(point), '_blank')}
+                    onClick={() => handleMapFocus(point)}
                     className="bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-700 transition"
                   >
                     📍
@@ -679,6 +743,12 @@ const PaymentPoints = () => {
                     📞
                   </button>
                 </div>
+                {/* Description */}
+                {point.description && (
+                  <div className="mt-3 text-xs text-gray-500 leading-snug line-clamp-3">
+                    {point.description}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -691,43 +761,19 @@ const PaymentPoints = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             </svg>
             <h3 className="text-xl font-bold text-gray-800 mb-2">
-              {showNearbyOnly 
-                ? '📍 Yakınınızda ödeme noktası bulunamadı'
-                : searchTerm 
-                  ? 'Arama kriterine uygun nokta bulunamadı' 
-                  : 'Henüz ödeme noktası bulunmuyor'
+              {searchMode 
+                ? 'Arama kriterine uygun nokta bulunamadı' 
+                : 'Henüz ödeme noktası bulunmuyor'
               }
             </h3>
             <p className="text-gray-600 mb-4">
-              {showNearbyOnly 
-                ? '100km çapında açık olan ödeme noktası bulunamadı. Farklı bir konumdan deneyin veya tüm noktaları görüntüleyin.'
-                : searchTerm 
-                  ? 'Farklı bir arama terimi deneyin veya filtreleri temizleyin.'
-                  : 'Ödeme noktaları yükleniyor veya henüz sisteme eklenmiş nokta bulunmuyor.'
+              {searchMode 
+                ? 'Farklı bir arama terimi deneyin veya filtreleri temizleyin.'
+                : 'Ödeme noktaları yükleniyor veya henüz sisteme eklenmiş nokta bulunmuyor.'
               }
             </p>
-            
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              {showNearbyOnly ? (
-                <>
-                  <button 
-                    onClick={() => {
-                      setShowNearbyOnly(false);
-                      setSearchMode(false);
-                      setSearchTerm('');
-                    }}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                  >
-                    📍 Tüm Noktaları Göster
-                  </button>
-                  <button 
-                    onClick={fetchNearbyPaymentPoints}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-                  >
-                    🔄 Yakınları Yenile
-                  </button>
-                </>
-              ) : searchTerm ? (
+              {searchMode ? (
                 <button 
                   onClick={() => setSearchTerm('')}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -736,8 +782,8 @@ const PaymentPoints = () => {
                 </button>
               ) : (
                 <button 
-                  onClick={fetchPaymentPoints}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  onClick={fetchNearbyPaymentPoints}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
                 >
                   Yenile
                 </button>
@@ -763,7 +809,6 @@ const PaymentPoints = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                
                 <h2 className="text-2xl font-bold">Ödeme Noktası Detayları</h2>
                 <p className="text-white/90">Detaylı bilgiler ve iletişim</p>
               </div>
@@ -781,8 +826,10 @@ const PaymentPoints = () => {
                   </div>
                 ) : selectedPoint ? (
                   <div>
+                    {/* Galeri */}
+                    <PaymentPointGallery photos={selectedPoint.photos} name={selectedPoint.name} />
                     {/* Başlık ve durum */}
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-6 mt-6">
                       <h1 className="text-3xl font-bold text-gray-900">{selectedPoint.name}</h1>
                       <span className={`px-4 py-2 rounded-full text-sm font-bold text-white ${
                         selectedPoint.isOpen ? 'bg-green-500' : 'bg-red-500'
@@ -790,7 +837,6 @@ const PaymentPoints = () => {
                         {selectedPoint.isOpen ? '✅ AÇIK' : '❌ KAPALI'}
                       </span>
                     </div>
-
                     {/* Bilgi kartları */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                       {/* Adres Kartı */}
@@ -805,7 +851,6 @@ const PaymentPoints = () => {
                         <p className="text-gray-700 mb-2">{selectedPoint.address.district}, {selectedPoint.address.city}</p>
                         <p className="text-gray-600">{selectedPoint.address.postalCode}</p>
                       </div>
-
                       {/* İletişim Kartı */}
                       <div className="bg-gray-50 p-6 rounded-xl">
                         <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
@@ -818,7 +863,6 @@ const PaymentPoints = () => {
                         <p className="text-gray-600">Çalışma Saatleri: {selectedPoint.workingHours}</p>
                       </div>
                     </div>
-
                     {/* Açıklama */}
                     {selectedPoint.description && (
                       <div className="bg-blue-50 p-6 rounded-xl mb-6">
@@ -826,7 +870,6 @@ const PaymentPoints = () => {
                         <p className="text-gray-700">{selectedPoint.description}</p>
                       </div>
                     )}
-
                     {/* Ödeme Yöntemleri */}
                     <div className="bg-purple-50 p-6 rounded-xl mb-6">
                       <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
@@ -843,7 +886,6 @@ const PaymentPoints = () => {
                         ))}
                       </div>
                     </div>
-
                     {/* Aksiyon Butonları */}
                     <div className="flex flex-col sm:flex-row gap-4">
                       <button
@@ -883,3 +925,56 @@ const PaymentPoints = () => {
 };
 
 export default PaymentPoints;
+
+// Galeri bileşeni
+function PaymentPointGallery({ photos, name }) {
+  const [current, setCurrent] = React.useState(0);
+  if (!photos || photos.length === 0) {
+    return (
+      <div className="w-full h-64 bg-gray-100 flex items-center justify-center rounded-xl mb-6">
+        <img
+          src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
+          alt={name}
+          className="object-cover w-full h-full rounded-xl"
+        />
+      </div>
+    );
+  }
+  const goPrev = () => setCurrent((c) => (c === 0 ? photos.length - 1 : c - 1));
+  const goNext = () => setCurrent((c) => (c === photos.length - 1 ? 0 : c + 1));
+  return (
+    <div className="relative w-full h-64 mb-6">
+      <img
+        src={PaymentPointService.normalizeImageUrl(photos[current].imageUrl)}
+        alt={name}
+        className="object-cover w-full h-full rounded-xl"
+      />
+      {photos.length > 1 && (
+        <>
+          <button
+            onClick={goPrev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 rounded-full w-10 h-10 flex items-center justify-center shadow-lg"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={goNext}
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-700 rounded-full w-10 h-10 flex items-center justify-center shadow-lg"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </>
+      )}
+      {/* Fotoğraf sayacı */}
+      {photos.length > 1 && (
+        <div className="absolute bottom-2 right-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+          {current + 1} / {photos.length}
+        </div>
+      )}
+    </div>
+  );
+}

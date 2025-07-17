@@ -38,6 +38,16 @@ const normalizeImageUrl = (imageUrl, newsId) => {
   return finalUrl;
 };
 
+// Yardımcı fonksiyonlar
+function isYouTubeUrl(url) {
+  return /youtube\.com\/watch\?v=|youtu\.be\//.test(url);
+}
+
+function getYouTubeEmbedUrl(url) {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : url;
+}
+
 const News = () => {
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
@@ -105,7 +115,8 @@ const News = () => {
             type: news.type,
             startDate: news.startDate,
             endDate: news.endDate,
-            createdAt: news.createdAt
+            createdAt: news.createdAt,
+            videoUrl: news.videoUrl // Backend'den 'videoUrl' alanını ekliyoruz
           };
         });
         
@@ -206,7 +217,8 @@ const News = () => {
             type: news.type,
             startDate: news.startDate,
             endDate: news.endDate,
-            createdAt: news.createdAt
+            createdAt: news.createdAt,
+            videoUrl: news.videoUrl // Backend'den 'videoUrl' alanını ekliyoruz
           };
         });
         
@@ -767,20 +779,45 @@ const News = () => {
           )}
 
           {currentPageCampaigns.map(campaign => (
-            <div key={campaign.id} className="bg-white rounded-xl shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1" id={`news-card-${campaign.id}`}>
-              {/* Resim alanı - her zaman göster, NewsImage component fallback ile */}
-              <div className="h-48 overflow-hidden relative">
-                <NewsImage
-                  src={normalizeImageUrl(campaign.image || campaign.imageUrl, campaign.id) || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}
-                  alt={campaign.title}
-                  className="w-full h-full object-cover"
-                  onLoad={() => {
-                    console.log(`✅ [Haber ${campaign.id}] Resim başarıyla yüklendi: ${campaign.title}`);
-                  }}
-                  onError={(e) => {
-                    console.log(`❌ [Haber ${campaign.id}] Resim yüklenemedi, fallback kullanıldı`);
-                  }}
-                />
+            <div 
+              key={campaign.id} 
+              className="bg-white rounded-xl shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1 cursor-pointer" 
+              id={`news-card-${campaign.id}`}
+              onClick={() => handleViewNewsDetail(campaign.id)}
+            >
+              {/* Medya alanı: önce YouTube, sonra video, yoksa resim */}
+              <div className="h-48 overflow-hidden relative flex items-center justify-center bg-black">
+                {campaign.videoUrl ? (
+                  isYouTubeUrl(campaign.videoUrl) ? (
+                    <iframe
+                      src={getYouTubeEmbedUrl(campaign.videoUrl)}
+                      title="YouTube video player"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="w-full h-full"
+                      style={{ minHeight: 192, background: '#000' }}
+                    />
+                  ) : (
+                    <video
+                      src={campaign.videoUrl}
+                      controls
+                      className="w-full h-full object-cover"
+                      style={{ background: '#000' }}
+                    />
+                  )
+                ) : (
+                  <NewsImage
+                    src={normalizeImageUrl(campaign.image || campaign.imageUrl, campaign.id) || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}
+                    alt={campaign.title}
+                    className="w-full h-full object-cover"
+                    onLoad={() => {
+                      console.log(`✅ [Haber ${campaign.id}] Resim başarıyla yüklendi: ${campaign.title}`);
+                    }}
+                    onError={(e) => {
+                      console.log(`❌ [Haber ${campaign.id}] Resim yüklenemedi, fallback kullanıldı`);
+                    }}
+                  />
+                )}
                 <div className="absolute top-0 right-0 bg-red-500 text-white py-1 px-3 rounded-bl-lg font-bold">
                   {campaign.discount}
                 </div>
@@ -805,7 +842,7 @@ const News = () => {
                   <div className="flex items-center gap-2">
                     {/* Beğeni Butonu */}
                     <button 
-                      onClick={(e) => likedNews.has(campaign.id) ? handleUnlikeNews(campaign.id, e) : handleLikeNews(campaign.id, e)}
+                      onClick={(e) => { e.stopPropagation(); likedNews.has(campaign.id) ? handleUnlikeNews(campaign.id, e) : handleLikeNews(campaign.id, e); }}
                       disabled={likingNews.has(campaign.id)}
                       className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200 ${
                         likedNews.has(campaign.id)
@@ -824,14 +861,7 @@ const News = () => {
                       )}
                       <span>{campaign.likeCount || 0}</span>
                     </button>
-                    
-                    {/* Haber Detay Butonu */}
-                    <button 
-                      onClick={() => handleViewNewsDetail(campaign.id)}
-                      className="text-white bg-blue-600 hover:bg-blue-700 transition px-4 py-2 rounded-lg text-sm font-medium"
-                    >
-                      Haberi Gör
-                    </button>
+                    {/* 'Haberi Gör' butonunu kaldırdık, kart tıklanabilir oldu */}
                   </div>
                 </div>
               </div>
@@ -994,20 +1024,39 @@ const News = () => {
                   </div>
                 ) : (
                   <div className="animate-fade-in-up">
-                    {/* Enhanced News Image */}
-                    <div className="mb-8 relative group">
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
-                      <NewsImage
-                        src={normalizeImageUrl(selectedNews?.image || selectedNews?.imageUrl, selectedNews?.id) || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}
-                        alt={selectedNews?.title || 'Haber Resmi'}
-                        className="relative w-full h-80 object-cover rounded-2xl border-4 border-white shadow-2xl transform group-hover:scale-[1.02] transition-transform duration-500"
-                        onLoad={() => {
-                          console.log(`✅ Modal resimi yüklendi: ${selectedNews?.title}`);
-                        }}
-                        onError={() => {
-                          console.log(`❌ Modal resimi yüklenemedi, fallback kullanıldı: ${selectedNews?.title}`);
-                        }}
-                      />
+                    {/* Medya alanı: önce YouTube, sonra video, yoksa resim */}
+                    <div className="mb-8 relative group flex items-center justify-center bg-black">
+                      {selectedNews?.videoUrl ? (
+                        isYouTubeUrl(selectedNews.videoUrl) ? (
+                          <iframe
+                            src={getYouTubeEmbedUrl(selectedNews.videoUrl)}
+                            title="YouTube video player"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                            className="relative w-full h-80 rounded-2xl border-4 border-white shadow-2xl"
+                            style={{ minHeight: 320, background: '#000' }}
+                          />
+                        ) : (
+                          <video
+                            src={selectedNews.videoUrl}
+                            controls
+                            className="relative w-full h-80 object-cover rounded-2xl border-4 border-white shadow-2xl"
+                            style={{ background: '#000' }}
+                          />
+                        )
+                      ) : (
+                        <NewsImage
+                          src={normalizeImageUrl(selectedNews?.image || selectedNews?.imageUrl, selectedNews?.id) || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}
+                          alt={selectedNews?.title || 'Haber Resmi'}
+                          className="relative w-full h-80 object-cover rounded-2xl border-4 border-white shadow-2xl transform group-hover:scale-[1.02] transition-transform duration-500"
+                          onLoad={() => {
+                            console.log(`✅ Modal resimi yüklendi: ${selectedNews?.title}`);
+                          }}
+                          onError={() => {
+                            console.log(`❌ Modal resimi yüklenemedi, fallback kullanıldı: ${selectedNews?.title}`);
+                          }}
+                        />
+                      )}
                       <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
 

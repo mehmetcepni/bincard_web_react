@@ -14,7 +14,7 @@ import TokenDebug from '../debug/TokenDebug.jsx';
 const menuItems = [
   { text: 'Ana Sayfa', icon: '🏠', path: 'dashboard', key: 'dashboard' },
   { text: 'Cüzdan', icon: '👛', path: 'wallet', key: 'wallet' },
-  { text: 'Ödeme Noktası', icon: '🏪', path: 'payment-points', key: 'payment-points' },
+  { text: 'Yakındaki Ödeme Noktaları', icon: '🏪', path: 'payment-points', key: 'payment-points' },
   { text: 'Geçmiş İşlemler', icon: '📜', path: 'history', key: 'history' },
   { text: 'Haberler', icon: '📰', path: 'news', key: 'news' },
   { text: 'Beğendiğim Haberler', icon: '❤️', path: 'liked-news', key: 'liked-news' },
@@ -222,8 +222,8 @@ const DashboardHome = () => {
   // Hızlı erişim kısayolları
   const quickActions = [
     {
-      title: 'Ödeme Noktaları',
-      description: 'Yakınımdaki bakiye yükleme noktalarını bul',
+      title: 'Yakındaki Ödeme Noktaları',
+      description: 'Yakınınızdaki bakiye yükleme noktalarını bul',
       icon: '🏪',
       color: 'from-purple-500 to-purple-300',
       onClick: () => navigate('/payment-points')
