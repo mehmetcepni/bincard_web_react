@@ -1,12 +1,62 @@
-# React + Vite
+# Bincard Web React Cüzdan Uygulaması
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bu proje, React ve Vite kullanılarak geliştirilmiş modern bir cüzdan (wallet) ve ödeme noktası web uygulamasıdır. Backend tarafı Java Spring Boot ile geliştirilmiştir.
 
-Currently, two official plugins are available:
+## Özellikler
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Kullanıcı Girişi ve Kayıt:** SMS doğrulama ve yeni cihaz algılama ile güvenli giriş.
+- **Cüzdan (Wallet) Yönetimi:**
+  - Bakiye görüntüleme
+  - Para yükleme (kredi kartı ile)
+  - Gerçek zamanlı bakiye güncellemesi
+- **İşlem Geçmişi:**
+  - Cüzdan aktiviteleri ve filtrelenebilir işlem geçmişi
+- **Ödeme Noktaları:**
+  - Harita üzerinde yakın ödeme noktalarını görüntüleme
+  - Detaylı ödeme noktası bilgileri (modal ile)
+  - Haritada odaklanma
+- **Modern ve Duyarlı Arayüz:**
+  - Mobil ve masaüstü uyumlu tasarım
+  - Kullanıcı dostu formlar ve bildirimler
+- **Hata Yönetimi:**
+  - Anlaşılır hata mesajları ve kullanıcıya geri bildirim
 
-## Expanding the ESLint configuration
+## Kullanılan Teknolojiler
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend:**
+  - React
+  - Vite
+  - Tailwind CSS
+  - react-toastify (bildirimler için)
+  - react-router-dom (sayfa yönlendirme)
+  - Harita için popüler JS kütüphanesi (örn. Leaflet veya Google Maps API)
+- **Backend:**
+  - Java Spring Boot
+  - RESTful API
+  - SMS doğrulama ve ödeme servisleri entegrasyonu
+
+## Kurulum ve Çalıştırma
+
+1. **Bağımlılıkları Yükleyin:**
+   ```bash
+   npm install
+   ```
+2. **Geliştirme Sunucusunu Başlatın:**
+   ```bash
+   npm run dev
+   ```
+3. **Backend'i başlatmayı unutmayın!** (Java Spring Boot projesi ayrı dizindedir.)
+
+## Klasör Yapısı (Özet)
+
+- `src/components/auth/` — Giriş, kayıt, şifre işlemleri
+- `src/components/dashboard/` — Cüzdan, ödeme noktaları, profil, haberler
+- `src/services/` — API servisleri (auth, wallet, news, payment-point)
+
+## Katkı ve Geliştirme
+
+Pull request'ler ve katkılar memnuniyetle karşılanır. Lütfen kod standartlarına ve proje yapısına uygun geliştirme yapınız.
+
+## Lisans
+
+Bu proje MIT lisansı ile lisanslanmıştır.
