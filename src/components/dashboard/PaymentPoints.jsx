@@ -599,45 +599,47 @@ const PaymentPoints = () => {
         )}
 
         {/* Map Section */}
-        <div className="mb-8">
-          <MapContainer
-            center={userLocation ? [userLocation.latitude, userLocation.longitude] : [39.925533, 32.866287]} // Default: Ankara
-            zoom={userLocation ? 11 : 6}
-            style={{ height: '350px', width: '100%', borderRadius: '1rem', boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}
-            scrollWheelZoom={true}
-            whenCreated={mapInstance => { mapRef.current = mapInstance; }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {/* User Location Marker */}
-            {userLocation && (
-              <Marker position={[userLocation.latitude, userLocation.longitude]} icon={blueIcon}>
-                <Popup>Mevcut Konumunuz</Popup>
-              </Marker>
-            )}
-            {/* Only show nearby payment points on the map */}
-            {filteredPaymentPoints.map(point => (
-              point.location && point.location.latitude && point.location.longitude && (
-                <Marker
-                  key={point.id}
-                  position={[
-                    point.location.latitude,
-                    point.location.longitude
-                  ]}
-                  icon={redIcon}
-                  eventHandlers={{
-                    popupopen: () => setSelectedMapPointId(point.id)
-                  }}
-                >
-                  <Popup autoPan={true} open={selectedMapPointId === point.id}>
-                    <PaymentPointPopup pointId={point.id} />
-                  </Popup>
+        <div className="mb-8 rounded-2xl overflow-hidden shadow-lg border border-gray-200" style={{background: '#f8fafc'}}>
+          <div className="w-full" style={{height: 'min(350px,40vw)', minHeight: 200, maxHeight: 400}}>
+            <MapContainer
+              center={userLocation ? [userLocation.latitude, userLocation.longitude] : [39.925533, 32.866287]} // Default: Ankara
+              zoom={userLocation ? 11 : 6}
+              style={{ height: '100%', width: '100%' }}
+              scrollWheelZoom={true}
+              whenCreated={mapInstance => { mapRef.current = mapInstance; }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {/* User Location Marker */}
+              {userLocation && (
+                <Marker position={[userLocation.latitude, userLocation.longitude]} icon={blueIcon}>
+                  <Popup>Mevcut Konumunuz</Popup>
                 </Marker>
-              )
-            ))}
-          </MapContainer>
+              )}
+              {/* Only show nearby payment points on the map */}
+              {filteredPaymentPoints.map(point => (
+                point.location && point.location.latitude && point.location.longitude && (
+                  <Marker
+                    key={point.id}
+                    position={[
+                      point.location.latitude,
+                      point.location.longitude
+                    ]}
+                    icon={redIcon}
+                    eventHandlers={{
+                      popupopen: () => setSelectedMapPointId(point.id)
+                    }}
+                  >
+                    <Popup autoPan={true} open={selectedMapPointId === point.id}>
+                      <PaymentPointPopup pointId={point.id} />
+                    </Popup>
+                  </Marker>
+                )
+              ))}
+            </MapContainer>
+          </div>
         </div>
 
         {/* Payment Points Grid */}

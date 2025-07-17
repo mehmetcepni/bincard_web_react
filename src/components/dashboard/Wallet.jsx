@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthService from '../../services/auth.service';
+import WalletService from '../../services/wallet.service';
 import { toast } from 'react-toastify';
 
 const Wallet = () => {
   const navigate = useNavigate();
-  const [balance, setBalance] = useState(150.75);
-  const [recentTransactions] = useState([
-    { id: 1, type: 'Yükleme', amount: 50, date: '2025-01-10', status: 'completed' },
-    { id: 2, type: 'Otobüs', amount: -3.5, date: '2025-01-10', status: 'completed' },
-    { id: 3, type: 'Metro', amount: -5.2, date: '2025-01-09', status: 'completed' },
-  ]);
+  const [wallet, setWallet] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Para yükleme için state
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [cardInfo, setCardInfo] = useState({ cardNumber: '', cardHolder: '', expireMonth: '', expireYear: '', cvc: '' });
+  const [isTopUpLoading, setIsTopUpLoading] = useState(false);
 
   // Sayfa yüklendiğinde auth kontrolü yap
   useEffect(() => {
@@ -39,6 +42,24 @@ const Wallet = () => {
       console.log('✅ [WALLET] Kullanıcı zaten giriş yapmış, cüzdan yükleniyor...');
     }
   }, [navigate]);
+
+  // Cüzdan bilgisini backend'den çek
+  useEffect(() => {
+    const fetchWallet = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await WalletService.getMyWallet();
+        setWallet(data);
+      } catch (err) {
+        setError(err.message || 'Cüzdan bilgisi alınamadı');
+        toast.error(err.message || 'Cüzdan bilgisi alınamadı');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWallet();
+  }, []);
 
   // İşlem butonları için auth kontrolü
   const handleAuthRequired = async (action) => {
@@ -79,121 +100,125 @@ const Wallet = () => {
     }
   };
 
+  // Cüzdana para yükle
+  const handleTopUp = async (e) => {
+    e.preventDefault();
+    setIsTopUpLoading(true);
+    try {
+      const result = await WalletService.topUpWallet({ amount: topUpAmount, cardInfo });
+      toast.success(result.message || '3D doğrulama başlatıldı. Yönlendirme yapılıyor.');
+      if (result.data && result.data.startsWith('<!doctype html')) {
+        // 3D secure için yeni pencere aç
+        const win = window.open('', '_blank');
+        win.document.open();
+        win.document.write(result.data);
+        win.document.close();
+      }
+    } catch (err) {
+      toast.error(err.message || 'Para yükleme işlemi başarısız.');
+    } finally {
+      setIsTopUpLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-6">
+        <div className="text-xl text-blue-700 animate-pulse">Cüzdan yükleniyor...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-6">
+        <div className="text-xl text-red-600">{error}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 p-6">
+      <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">💛 Cüzdanım</h1>
-          <p className="text-gray-600">Bakiye yönetimi ve işlem geçmişi</p>
+        <div className="mb-8 flex items-center gap-3">
+          <div className="bg-gradient-to-br from-yellow-400 to-yellow-200 rounded-full p-3 shadow-md">
+            <span className="text-3xl">💛</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-1 tracking-tight">Cüzdanım</h1>
+            <p className="text-gray-600 text-sm">Bakiye yönetimi ve işlem geçmişi</p>
+          </div>
         </div>
 
         {/* Bakiye Kartı */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white mb-6 shadow-lg">
-          <div className="flex justify-between items-start">
+        <div className="relative bg-gradient-to-r from-blue-700 via-purple-600 to-pink-500 rounded-3xl p-8 text-white mb-8 shadow-2xl overflow-hidden">
+          <div className="absolute right-6 top-6 opacity-30 text-7xl pointer-events-none select-none">💳</div>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
-              <p className="text-blue-100 text-sm mb-1">Mevcut Bakiye</p>
-              <h2 className="text-4xl font-bold">₺{balance.toFixed(2)}</h2>
-            </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-full">
-              <span className="text-2xl">💳</span>
-            </div>
-          </div>
-          
-          <div className="mt-6 flex space-x-3">
-            <button 
-              onClick={handleBalanceLoad}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg font-medium transition-all"
-            >
-              💰 Bakiye Yükle
-            </button>
-            <button 
-              onClick={handleSendMoney}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg font-medium transition-all"
-            >
-              📤 Para Gönder
-            </button>
-          </div>
-        </div>
-
-        {/* Hızlı İşlemler */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-3">
-              <div className="bg-green-100 p-3 rounded-full">
-                <span className="text-xl">💵</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-800">Otomatik Yükleme</h3>
-                <p className="text-gray-600 text-sm">Bakiye azaldığında otomatik yükle</p>
+              <div className="text-blue-200 text-xs mb-1 uppercase tracking-widest">Mevcut Bakiye</div>
+              <div className="text-5xl font-extrabold tracking-tight drop-shadow-lg">₺{wallet && wallet.balance != null ? Number(wallet.balance).toFixed(2) : '0.00'}</div>
+              <div className="mt-2 flex flex-wrap gap-4 text-blue-100 text-xs">
+                <span className="bg-white/10 px-3 py-1 rounded-full">Durum: {wallet?.status || '-'}</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full">Para Birimi: {wallet?.currency || '-'}</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full">Cüzdan ID: {wallet?.walletId || '-'}</span>
               </div>
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <span className="text-xl">🎯</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-800">Hedef Bakiye</h3>
-                <p className="text-gray-600 text-sm">Minimum bakiye limiti belirle</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-3">
-              <div className="bg-purple-100 p-3 rounded-full">
-                <span className="text-xl">📊</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-800">Harcama Analizi</h3>
-                <p className="text-gray-600 text-sm">Aylık harcama raporları</p>
-              </div>
+            <div className="flex flex-col gap-2 items-end">
+              <button
+                onClick={() => setTopUpAmount(wallet?.balance ? wallet.balance : '')}
+                className="bg-white/20 hover:bg-white/30 text-white font-semibold px-5 py-2 rounded-xl shadow transition text-sm"
+              >
+                <span className="mr-2">➕</span>Bakiye Yükle
+              </button>
+              <button
+                onClick={() => toast.info('Para gönderme özelliği yakında!')}
+                className="bg-white/10 hover:bg-white/20 text-white font-semibold px-5 py-2 rounded-xl shadow transition text-sm"
+              >
+                <span className="mr-2">💸</span>Para Gönder
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Son İşlemler */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Son İşlemler</h3>
-          <div className="space-y-3">
-            {recentTransactions.map(transaction => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-full ${
-                    transaction.type === 'Yükleme' ? 'bg-green-100' : 'bg-blue-100'
-                  }`}>
-                    <span className="text-sm">
-                      {transaction.type === 'Yükleme' ? '⬆️' : '⬇️'}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-800">{transaction.type}</p>
-                    <p className="text-gray-600 text-sm">{transaction.date}</p>
-                  </div>
-                </div>
-                <div className={`font-bold ${
-                  transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {transaction.amount > 0 ? '+' : ''}₺{Math.abs(transaction.amount).toFixed(2)}
-                </div>
-              </div>
-            ))}
+        {/* Para Yükleme Formu */}
+        <form onSubmit={handleTopUp} className="max-w-lg mx-auto mt-10 p-6 bg-white/90 rounded-2xl shadow-xl space-y-5 border border-blue-100">
+          <h2 className="text-xl font-bold text-blue-700 mb-2 flex items-center gap-2"><span>➕</span>Cüzdana Para Yükle</h2>
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">Tutar (₺)</label>
+            <input type="number" min="1" step="0.01" value={topUpAmount} onChange={e => setTopUpAmount(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white" required disabled={isTopUpLoading} />
           </div>
-          
-          <button className="w-full mt-4 bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium py-3 rounded-lg transition-colors">
-            Tüm İşlemleri Görüntüle
-          </button>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Kart Numarası</label>
+              <input type="text" maxLength={16} value={cardInfo.cardNumber} onChange={e => setCardInfo({ ...cardInfo, cardNumber: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white" required disabled={isTopUpLoading} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Kart Sahibi</label>
+              <input type="text" value={cardInfo.cardHolder} onChange={e => setCardInfo({ ...cardInfo, cardHolder: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white" required disabled={isTopUpLoading} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Son Kullanma Ay</label>
+              <input type="text" maxLength={2} value={cardInfo.expireMonth} onChange={e => setCardInfo({ ...cardInfo, expireMonth: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white" required disabled={isTopUpLoading} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Son Kullanma Yıl</label>
+              <input type="text" maxLength={2} value={cardInfo.expireYear} onChange={e => setCardInfo({ ...cardInfo, expireYear: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white" required disabled={isTopUpLoading} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">CVC</label>
+              <input type="text" maxLength={4} value={cardInfo.cvc} onChange={e => setCardInfo({ ...cardInfo, cvc: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white" required disabled={isTopUpLoading} />
+            </div>
+          </div>
+          <button type="submit" className="w-full py-2 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-60 text-lg" disabled={isTopUpLoading}>{isTopUpLoading ? 'Yükleniyor...' : 'Para Yükle'}</button>
+        </form>
+
+        {/* İşlem Geçmişi Bölümü için yer */}
+        <div className="mt-12 mb-4 text-center text-gray-400 text-sm italic">İşlem geçmişi yakında burada görünecek.</div>
 
         {/* Placeholder Note */}
-        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-800 text-sm">
-            <strong>🚧 Geliştirme Aşamasında:</strong> Bu sayfa henüz tamamlanmamış bir protiptir. 
-            Yakında gerçek cüzdan işlevleri eklenecektir.
-          </p>
+        <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 max-w-lg mx-auto text-xs text-yellow-800 text-center">
+          <strong>🚧 Geliştirme Aşamasında:</strong> Bu sayfa henüz tamamlanmamış bir protiptir. Yakında gerçek cüzdan işlevleri eklenecektir.
         </div>
       </div>
     </div>

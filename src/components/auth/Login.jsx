@@ -80,23 +80,13 @@ const Login = () => {
       console.log('AuthService login response:', response);
       
         // Özel durumlar - Backend exception türlerine göre
-        if (response && response.phoneNotVerified) {
+        if (
+          (response && response.message && response.message.includes('Yeni cihaz algılandı')) ||
+          (response && response.message && response.message.includes('Telefon numaranız doğrulanmamış'))
+        ) {
           setShowVerify(true);
-          setPendingLogin({ telephone }); 
-          // Backend'den gelen mesajı göster
-          const message = response.message || 'Telefon numaranız doğrulanmamış. SMS kodu gönderildi.';
-          toast.info(`📱 ${message}`, {
-            position: 'top-center',
-            autoClose: 5000,
-          });
-          setIsSubmitting(false);
-          return;
-        } else if (response && response.newDevice) {
-          setShowVerify(true);
-          setPendingLogin({ telephone }); 
-          // Backend'den gelen mesajı göster
-          const message = response.message || 'Yeni cihaz algılandı. Giriş için doğrulama kodu gönderildi.';
-          toast.info(`🔐 ${message}`, {
+          setPendingLogin({ telephone });
+          toast.info(`📱 ${response.message}`, {
             position: 'top-center',
             autoClose: 5000,
           });
