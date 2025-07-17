@@ -301,24 +301,9 @@ const PaymentPoints = () => {
 
   // Ödeme noktası detayını görüntüle
   const handleViewDetails = async (pointId) => {
-    try {
-      setSelectedPoint({ loading: true });
-      setIsModalOpen(true);
-      
-      const pointDetail = await PaymentPointService.getPaymentPointById(pointId);
-      
-      setSelectedPoint({
-        ...pointDetail,
-        formattedPaymentMethods: PaymentPointService.formatPaymentMethods(pointDetail.paymentMethods),
-        isOpen: PaymentPointService.isOpen(pointDetail.workingHours),
-        loading: false
-      });
-    } catch (error) {
-      console.error(`❌ Ödeme noktası ${pointId} detayı alınamadı:`, error);
-      setIsModalOpen(false);
-      setSelectedPoint(null);
-      toast.error('Ödeme noktası detayları yüklenemedi');
-    }
+    const point = nearbyPoints.find((p) => p.id === pointId);
+    setSelectedPoint(point);
+    setIsModalOpen(true);
   };
 
   // Modal'ı kapat
@@ -377,6 +362,13 @@ const PaymentPoints = () => {
     setSelectedMapPointId(point.id);
     if (mapRef.current && point.location && point.location.latitude && point.location.longitude) {
       mapRef.current.setView([point.location.latitude, point.location.longitude], 15, { animate: true });
+      // Marker'ın popup'unu aç
+      const markerLayer = mapRef.current._layers;
+      Object.values(markerLayer).forEach(layer => {
+        if (layer.getLatLng && layer.getLatLng().lat === point.location.latitude && layer.getLatLng().lng === point.location.longitude && layer.openPopup) {
+          layer.openPopup();
+        }
+      });
     }
   };
 
@@ -387,6 +379,9 @@ const PaymentPoints = () => {
     }
     // eslint-disable-next-line
   }, [userLocation, locationPermission]);
+
+  // Modal içinden haritada odaklama için fonksiyonu window'a ata
+  window.handleMapFocusFromModal = handleMapFocus;
 
   if (loading) {
     return (
@@ -653,20 +648,18 @@ const PaymentPoints = () => {
               <div className="h-48 overflow-hidden relative">
                 <NewsImage
                   src={point.photos.length > 0 
-                    ? PaymentPointService.normalizeImageUrl(point.photos[0].imageUrl)
+                    ? PaymentPointService.normalizeImageUrl(point.photos[0].imageUrl || point.photos[0].url || point.photos[0].photoUrl)
                     : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop'
                   }
                   alt={point.name}
                   className="w-full h-full object-cover"
                 />
-                
                 {/* Durum badge'i */}
                 <div className={`absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-bold text-white ${
                   point.isOpen ? 'bg-green-500' : 'bg-red-500'
                 }`}>
                   {point.isOpen ? 'AÇIK' : 'KAPALI'}
                 </div>
-
                 {/* Mesafe badge'i */}
                 {userLocation && (
                   <div className="absolute top-3 left-3 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">
@@ -674,11 +667,9 @@ const PaymentPoints = () => {
                   </div>
                 )}
               </div>
-
               {/* İçerik */}
               <div className="p-4">
                 <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-1">{point.name}</h3>
-                
                 {/* Adres */}
                 <div className="flex items-start mb-3">
                   <svg className="w-4 h-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -689,7 +680,6 @@ const PaymentPoints = () => {
                     {point.address.street}, {point.address.district}, {point.address.city}
                   </span>
                 </div>
-
                 {/* Çalışma saatleri */}
                 <div className="flex items-center mb-3">
                   <svg className="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -697,7 +687,6 @@ const PaymentPoints = () => {
                   </svg>
                   <span className="text-sm text-gray-600">{point.workingHours}</span>
                 </div>
-
                 {/* Ödeme yöntemleri */}
                 <div className="flex flex-wrap gap-1 mb-4">
                   {point.formattedPaymentMethods.slice(0, 2).map((method, index) => (
@@ -711,7 +700,6 @@ const PaymentPoints = () => {
                     </span>
                   )}
                 </div>
-
                 {/* Aksiyon butonları */}
                 <div className="flex gap-2">
                   <button
@@ -719,18 +707,6 @@ const PaymentPoints = () => {
                     className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
                   >
                     Detaylar
-                  </button>
-                  <button
-                    onClick={() => handleMapFocus(point)}
-                    className="bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-700 transition"
-                  >
-                    📍
-                  </button>
-                  <button
-                    onClick={() => callPhone(point.contactNumber)}
-                    className="bg-orange-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-orange-700 transition"
-                  >
-                    📞
                   </button>
                 </div>
                 {/* Description */}
@@ -965,6 +941,75 @@ function PaymentPointGallery({ photos, name }) {
           {current + 1} / {photos.length}
         </div>
       )}
+    </div>
+  );
+}
+
+// Detay Modalı Bileşeni
+function DetailModal({ point, onClose }) {
+  // Modal içinden haritada odaklama için fonksiyon prop olarak geçilemiyor, window üzerinden geçici çözüm:
+  window.handleMapFocusFromModal = window.handleMapFocusFromModal || null;
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        {/* Galeri */}
+        {point.photos && point.photos.length > 0 && (
+          <div className="mb-4">
+            <img
+              src={PaymentPointService.normalizeImageUrl(point.photos[0].imageUrl || point.photos[0].url || point.photos[0].photoUrl)}
+              alt={point.name}
+              className="w-full h-48 object-cover rounded-xl"
+            />
+          </div>
+        )}
+        <h2 className="text-2xl font-bold text-blue-800 mb-2">{point.name}</h2>
+        <div className="mb-2 text-gray-700">
+          <strong>Adres:</strong> {point.address.street}, {point.address.district}, {point.address.city}
+        </div>
+        <div className="mb-2 text-gray-700">
+          <strong>İletişim:</strong> {point.contactNumber}
+        </div>
+        <div className="mb-2 text-gray-700">
+          <strong>Çalışma Saatleri:</strong> {point.workingHours}
+        </div>
+        {point.description && (
+          <div className="mb-2 text-gray-700">
+            <strong>Açıklama:</strong> {point.description}
+          </div>
+        )}
+        <div className="mb-2 text-gray-700">
+          <strong>Ödeme Yöntemleri:</strong> {point.formattedPaymentMethods && point.formattedPaymentMethods.length > 0
+            ? point.formattedPaymentMethods.join(', ')
+            : 'Bilgi yok'}
+        </div>
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => {
+              if (typeof window.handleMapFocusFromModal === 'function') {
+                window.handleMapFocusFromModal(point);
+              }
+              onClose();
+            }}
+            className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-700 transition text-center"
+          >
+            Haritada Göster
+          </button>
+          <a
+            href={`tel:${point.contactNumber}`}
+            className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-700 transition text-center"
+          >
+            Ara
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
