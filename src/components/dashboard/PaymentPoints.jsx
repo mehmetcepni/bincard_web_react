@@ -369,20 +369,8 @@ const PaymentPoints = () => {
     window.open(`tel:${phoneNumber}`);
   };
 
-  // filteredPaymentPoints'i nearbyPoints'e göre ayarla
-  const filteredPaymentPoints = React.useMemo(() => {
-    if (!nearbyPoints || nearbyPoints.length === 0) return [];
-    if (!searchTerm.trim()) return nearbyPoints;
-    const term = searchTerm.trim().toLowerCase();
-    return nearbyPoints.filter(point =>
-      point.name.toLowerCase().includes(term) ||
-      (point.address && (
-        point.address.city?.toLowerCase().includes(term) ||
-        point.address.district?.toLowerCase().includes(term) ||
-        point.address.street?.toLowerCase().includes(term)
-      ))
-    );
-  }, [nearbyPoints, searchTerm]);
+  // Sadece yakın konumdakiler gösterilecek
+  const filteredPaymentPoints = nearbyPoints;
 
   // Kartlardaki 📍 butonu için fonksiyon
   const handleMapFocus = (point) => {
