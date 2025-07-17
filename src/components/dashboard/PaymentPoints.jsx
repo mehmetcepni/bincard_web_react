@@ -244,7 +244,7 @@ const PaymentPoints = () => {
 
       setNearbyPoints(formattedNearbyPoints);
       setSearchMode(false); // Yakındakiler modu, arama değil
-      
+      setLoading(false); // <-- YÜKLENMEYİ BİTİR
       // Detaylı bilgilendirme mesajları
       if (formattedNearbyPoints.length > 0) {
         // API'den gelen message kullan veya varsayılan
@@ -294,6 +294,8 @@ const PaymentPoints = () => {
         timestamp: new Date().toLocaleString('tr-TR'),
         loadingState: 'false'
       });
+      // Eğer hata olduysa da loading'i kapat
+      setLoading(false);
     }
   };
 
