@@ -46,14 +46,15 @@ const Register = () => {
 
   const validate = () => {
     if (!form.firstName || form.firstName.length < 2) return '👤 Ad en az 2 karakter olmalı';
-    if (!/^[a-zA-ZçğıöşüÇĞIİÖŞÜ\s]+$/.test(form.firstName)) return '👤 Ad alanına sadece harf girebilirsiniz';
+    if (!/^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]+$/.test(form.firstName)) return '👤 Ad alanına sadece harf girebilirsiniz';
     if (!form.lastName || form.lastName.length < 2) return '👤 Soyad en az 2 karakter olmalı';
-    if (!/^[a-zA-ZçğıöşüÇĞIİÖŞÜ\s]+$/.test(form.lastName)) return '👤 Soyad alanına sadece harf girebilirsiniz';
+    if (!/^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]+$/.test(form.lastName)) return '👤 Soyad alanına sadece harf girebilirsiniz';
     if (!form.telephone) return '📱 Lütfen telefon numaranızı girin';
     if (!/^0[0-9]{10}$/.test(form.telephone)) return '📱 Telefon numarası 0 ile başlamalı ve 11 haneli olmalı (örn: 05xxxxxxxxx)';
     if (!form.password) return '🔒 Lütfen şifrenizi girin';
-    if (form.password.length < 6) return '🔒 Şifre en az 6 karakter olmalı';
+    if (form.password.length !== 6) return '🔒 Şifre tam olarak 6 karakter olmalı';
     if (!form.confirmPassword) return '🔒 Lütfen şifrenizi tekrar girin';
+    if (form.confirmPassword.length !== 6) return '🔒 Şifre tekrar tam olarak 6 karakter olmalı';
     if (form.password !== form.confirmPassword) return '🔒 Girdiğiniz şifreler eşleşmiyor. Lütfen kontrol edin.';
     return '';
   };
@@ -384,6 +385,8 @@ const Register = () => {
                     onChange={handleChange}
                     disabled={isSubmitting}
                     autoComplete="new-password"
+                    maxLength={6}
+                    minLength={6}
                   />
                   <button
                     type="button"
@@ -415,6 +418,8 @@ const Register = () => {
                     onChange={handleChange}
                     disabled={isSubmitting}
                     autoComplete="new-password"
+                    maxLength={6}
+                    minLength={6}
                   />
                   <button
                     type="button"

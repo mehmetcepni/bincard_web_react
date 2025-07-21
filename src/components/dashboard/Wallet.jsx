@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AuthService from '../../services/auth.service';
 import WalletService from '../../services/wallet.service';
 import { toast } from 'react-toastify';
+import TransferDetail from './TransferDetail';
 
 const Wallet = () => {
   const navigate = useNavigate();
@@ -212,6 +213,14 @@ const Wallet = () => {
           </div>
           <button type="submit" className="w-full py-2 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-md transition disabled:opacity-60 text-lg" disabled={isTopUpLoading}>{isTopUpLoading ? 'Yükleniyor...' : 'Para Yükle'}</button>
         </form>
+
+        {/* Transfer Detayı */}
+        <div className="mt-12 mb-8">
+          <h2 className="text-xl font-bold text-blue-700 mb-4 flex items-center gap-2">
+            <span>🔍</span>Transfer Detayı (Örnek)
+          </h2>
+          <TransferDetail transferId={1} />
+        </div>
 
         {/* İşlem Geçmişi Bölümü için yer */}
         <div className="mt-12 mb-4 text-center text-gray-400 text-sm italic">İşlem geçmişi yakında burada görünecek.</div>

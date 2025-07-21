@@ -1,10 +1,26 @@
 import React, { useState } from 'react';
 
+const FAQS = [
+  {
+    question: 'Geri bildirimlerime ne zaman yanıt alacağım?',
+    answer: 'Genellikle 24-48 saat içinde size geri dönüş yapıyoruz.'
+  },
+  {
+    question: 'Anonim geri bildirim verebilir miyim?',
+    answer: 'Evet, kimlik bilgilerinizi paylaşmak zorunda değilsiniz.'
+  },
+  {
+    question: 'Acil durumlar için nasıl iletişim kurabilirim?',
+    answer: 'Acil durumlar için 7/24 destek hattımızı arayabilirsiniz: 444 BİN KART'
+  }
+];
+
 const Feedback = () => {
   const [feedbackType, setFeedbackType] = useState('suggestion');
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
 
   const feedbackTypes = [
     { id: 'suggestion', label: 'Öneri', icon: '💡', color: 'blue' },
@@ -118,19 +134,39 @@ const Feedback = () => {
         {/* FAQ Section */}
         <div className="mt-8 bg-white rounded-xl shadow-md p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4">🙋‍♀️ Sık Sorulan Sorular</h3>
-          <div className="space-y-4">
-            <div className="border-b border-gray-100 pb-3">
-              <h4 className="font-semibold text-gray-800 mb-1">Geri bildirimlerime ne zaman yanıt alacağım?</h4>
-              <p className="text-gray-600 text-sm">Genellikle 24-48 saat içinde size geri dönüş yapıyoruz.</p>
-            </div>
-            <div className="border-b border-gray-100 pb-3">
-              <h4 className="font-semibold text-gray-800 mb-1">Anonim geri bildirim verebilir miyim?</h4>
-              <p className="text-gray-600 text-sm">Evet, kimlik bilgilerinizi paylaşmak zorunda değilsiniz.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-1">Acil durumlar için nasıl iletişim kurabilirim?</h4>
-              <p className="text-gray-600 text-sm">Acil durumlar için 7/24 destek hattımızı arayabilirsiniz: 444 BİN KART</p>
-            </div>
+          <div className="space-y-2">
+            {FAQS.map((faq, idx) => {
+              const isOpen = openFaq === idx;
+              return (
+                <div
+                  key={idx}
+                  className={`last:border-b-0 ${isOpen ? '' : 'border-b border-gray-100'}`}
+                >
+                  <button
+                    type="button"
+                    className="w-full text-left flex items-center justify-between py-3 focus:outline-none"
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-answer-${idx}`}
+                    onClick={() => setOpenFaq(isOpen ? null : idx)}
+                  >
+                    <span className="font-semibold text-gray-800">{faq.question}</span>
+                    <span className={`ml-2 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`}>▶</span>
+                  </button>
+                  <div
+                    id={`faq-answer-${idx}`}
+                    className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    style={{
+                      maxHeight: isOpen ? 200 : 0,
+                      opacity: isOpen ? 1 : 0,
+                    }}
+                  >
+                    <div className="text-gray-600 text-sm pb-3 pl-1 pr-2">
+                      {faq.answer}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

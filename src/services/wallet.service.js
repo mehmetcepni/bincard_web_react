@@ -85,6 +85,27 @@ class WalletService {
       throw err;
     }
   }
+
+  // Belirli bir transferin detayını getir
+  async getTransferDetail(transferId) {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const response = await fetch(`${BASE_URL}/wallet/transfer/${transferId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Transfer detayı getirilemedi.');
+      }
+      return data.data; // TransferDetailsDTO
+    } catch (err) {
+      throw err;
+    }
+  }
 }
 
 export default new WalletService(); 

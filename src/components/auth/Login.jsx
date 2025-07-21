@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import AuthService from '../../services/auth.service';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { messaging, getToken } from '../../firebase';
 
 const getDeviceInfo = () => 'Xiaomi Redmi Note 11 - Android 13';
 const getAppVersion = () => '1.4.2';
@@ -57,8 +58,8 @@ const Login = () => {
       err = '📱 Telefon numarası sadece sayılardan oluşmalı';
     } else if (!form.password) {
       err = '🔒 Lütfen şifrenizi girin';
-    } else if (form.password.length < 6) {
-      err = '🔒 Şifre en az 6 karakter olmalı';
+    } else if (form.password.length !== 6) {
+      err = '🔒 Şifre tam olarak 6 karakter olmalı';
     }
     setError(err);
     return !err;
@@ -99,6 +100,37 @@ const Login = () => {
             position: 'top-center',            autoClose: 2000,
             onClose: () => navigate('/dashboard'),
           });
+          // === FCM TOKEN ENTEGRASYONU ===
+          try {
+            // Sadece daha önce başarılı kayıt olmadıysa
+            if (localStorage.getItem('fcmTokenRegistered') !== 'true') {
+              if ('Notification' in window && messaging) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                  // VAPID anahtarınızı buraya ekleyin
+                  const fcmToken = await getToken(messaging, { vapidKey: 'VAPID_KEYINIZ' });
+                  if (fcmToken) {
+                    const accessToken = localStorage.getItem('accessToken');
+                    const apiResponse = await fetch(`http://localhost:8080/v1/api/user/update-fcm-token?fcmToken=${encodeURIComponent(fcmToken)}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                      }
+                    });
+                    const result = await apiResponse.json();
+                    if (result === true) {
+                      localStorage.setItem('fcmTokenRegistered', 'true');
+                    } else {
+                      localStorage.removeItem('fcmTokenRegistered');
+                    }
+                  }
+                }
+              }
+            }
+          } catch (fcmErr) {
+            localStorage.removeItem('fcmTokenRegistered');
+          }
+          // === FCM TOKEN ENTEGRASYONU SONU ===
         } else if (response && !response.success) {
           // Backend'den gelen hata mesajını direkt göster
           const errorMessage = response.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.';
@@ -301,6 +333,8 @@ const Login = () => {
                   onChange={handleChange}
                   disabled={isSubmitting}
                   autoComplete="current-password"
+                  maxLength={6}
+                  minLength={6}
                 />
                 <button
                   type="button"

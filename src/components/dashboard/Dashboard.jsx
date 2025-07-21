@@ -51,7 +51,20 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleNavigation = (item) => {
+  const handleNavigation = async (item) => {
+    if ((item.key === 'profilim' || item.key === 'liked-news' || item.key === 'payment-points') && !AuthService.isAuthenticated()) {
+      // Giriş yapılmamışsa modal aç
+      const result = await AuthService.showLoginConfirmModal(
+        item.key === 'profilim'
+          ? 'Profil bilgilerinizi görüntüleme işlemini'
+          : item.key === 'liked-news'
+            ? 'Beğenilen haberleri görüntüleme işlemini'
+            : 'Yakındaki ödeme noktalarını görüntüleme işlemini',
+        navigate
+      );
+      // Evet derse zaten modal fonksiyonu login'e yönlendiriyor, hayır derse hiçbir şey yapma
+      return;
+    }
     setActiveTab(item.key);
     navigate(`/${item.path}`);
     setSidebarOpen(false);
