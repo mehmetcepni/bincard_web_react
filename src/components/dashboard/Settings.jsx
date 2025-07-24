@@ -1,0 +1,1064 @@
+import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
+import AuthService from '../../services/auth.service';
+import NotificationService from '../../services/notification.service';
+import Avatar from '../common/Avatar';
+
+const Settings = () => {
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState('profile'); // 'profile', 'notifications' veya 'settings'
+  const [settings, setSettings] = useState({
+    notifications: {
+      email: true,
+      push: true,
+      sms: false,
+      news: true,
+      promotions: true
+    },
+    privacy: {
+      profileVisible: true,
+      locationTracking: true,
+      dataSharing: false
+    },
+    language: 'tr',
+    theme: 'light',
+    currency: 'TRY'
+  });
+  
+  // Notifications tab states
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Avatar modal state
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  
+  // Notification detail modal states
+  const [showNotificationDetailModal, setShowNotificationDetailModal] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [notificationType, setNotificationType] = useState(null); // null, SUCCESS, WARNING, ERROR
+
+  // Bildirim tipi simgesini belirleme
+  const getNotificationIcon = (type) => {
+    switch(type) {
+      case 'SUCCESS': return '✅';
+      case 'WARNING': return '⚠️';
+      case 'ERROR': return '❌';
+      case 'INFO': return '📌';
+      default: return '🔔';
+    }
+  };
+
+  // Bildirim okundu olarak işaretle
+  const markAsRead = (id) => {
+    NotificationService.markAsRead(id)
+      .then(() => {
+        setNotifications(prev => 
+          prev.map(notif => notif.id === id ? {...notif, read: true} : notif)
+        );
+        toast.success('Bildirim okundu olarak işaretlendi', {
+          position: 'top-center',
+          autoClose: 2000
+        });
+      })
+      .catch(err => {
+        console.error('Bildirim işaretlenirken hata oluştu:', err);
+        toast.error('İşlem sırasında bir hata oluştu', {
+          position: 'top-center'
+        });
+      });
+  };
+
+  // Tüm bildirimleri okundu olarak işaretle
+  const markAllAsRead = () => {
+    NotificationService.markAllAsRead()
+      .then(() => {
+        setNotifications(prev => 
+          prev.map(notif => ({...notif, read: true}))
+        );
+        toast.success('Tüm bildirimler okundu olarak işaretlendi!', {
+          position: 'top-center',
+          autoClose: 2000
+        });
+      })
+      .catch(err => {
+        console.error('Bildirimler işaretlenirken hata oluştu:', err);
+        toast.error('İşlem sırasında bir hata oluştu', {
+          position: 'top-center'
+        });
+      });
+  };
+  
+  // Bildirim detayını görüntüle
+  const handleViewNotificationDetail = (notification) => {
+    setSelectedNotification(notification);
+    setLoadingDetail(true);
+    
+    NotificationService.getNotificationDetail(notification.id)
+      .then(detailData => {
+        setSelectedNotification(detailData);
+        setShowNotificationDetailModal(true);
+        
+        // Bildirim listesinde okundu olarak işaretle
+        setNotifications(prev => 
+          prev.map(notif => notif.id === notification.id ? {...notif, read: true} : notif)
+        );
+      })
+      .catch(err => {
+        console.error('Bildirim detayı alınırken hata oluştu:', err);
+        toast.error('Bildirim detayları alınamadı', {
+          position: 'top-center'
+        });
+      })
+      .finally(() => {
+        setLoadingDetail(false);
+      });
+  };
+
+  // Filtre değiştir
+  const changeNotificationType = (type) => {
+    setNotificationType(type);
+    setPage(0); // Sayfa numarasını sıfırla
+  };
+
+  // Sayfa değiştir
+  const changePage = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      setPage(newPage);
+    }
+  };
+
+  const applyTheme = (theme) => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  };
+  
+  // Avatar değiştirme işlemlerini yönetir
+  const handleAvatarClick = () => {
+    setShowAvatarModal(true);
+    toast.info("Avatar değiştirme özelliği yakında aktif olacaktır!", {
+      position: "top-center",
+      autoClose: 3000
+    });
+  };
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const authStatus = AuthService.isAuthenticated();
+      setIsAuthenticated(authStatus);
+      
+      if (authStatus) {
+        try {
+          // Önce API'den profil bilgilerini çekmeyi deneyelim
+          try {
+            const profileData = await AuthService.getProfile();
+            if (profileData) {
+              console.log('API\'den profil bilgisi alındı:', profileData);
+              setUser(profileData);
+              return; // API'den veri alındıysa fonksiyondan çık
+            }
+          } catch (apiError) {
+            console.warn('API\'den profil bilgisi alınamadı, localStorage kullanılacak:', apiError);
+          }
+          
+          // API'den alınamazsa localStorage'dan oku
+          const savedProfile = localStorage.getItem('lastKnownProfile');
+          if (savedProfile) {
+            console.log('localStorage\'dan profil bilgisi alındı');
+            setUser(JSON.parse(savedProfile));
+          } else {
+            console.warn('Profil bilgisi localStorage\'da bulunamadı');
+            toast.warning('Profil bilgileri yüklenemedi. Lütfen sayfayı yenileyin veya tekrar giriş yapın.', {
+              position: 'top-center'
+            });
+          }
+        } catch (error) {
+          console.error('Profil bilgisi alınamadı:', error);
+          toast.error('Profil bilgileri alınamadı: ' + error.message);
+        }
+      }
+    };
+
+    // Ayarları localStorage'dan yükle
+    const savedSettings = localStorage.getItem('userSettings');
+    if (savedSettings) {
+      try {
+        setSettings(JSON.parse(savedSettings));
+      } catch (error) {
+        console.warn('Ayarlar yüklenemedi:', error);
+      }
+    }
+
+    // Tema ayarını yükle ve uygula
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      applyTheme(savedTheme);
+      setSettings(prev => ({ ...prev, theme: savedTheme }));
+    }
+
+    // Asenkron fonksiyonu çağır
+    checkAuth();
+  }, []);
+  
+  // Bildirimler API'sini çağıran useEffect
+  useEffect(() => {
+    if (activeSubTab === 'notifications') {
+      setLoading(true);
+      setError(null);
+      
+      NotificationService.getNotifications(notificationType, page, 10)
+        .then(data => {
+          setNotifications(data.content);
+          setTotalPages(data.totalPages);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error('Bildirimler yüklenirken hata oluştu:', err);
+          setError('Bildirimler yüklenemedi. Lütfen daha sonra tekrar deneyin.');
+          setLoading(false);
+          toast.error('Bildirimler yüklenemedi', {
+            position: 'top-center'
+          });
+        });
+    }
+  }, [page, notificationType, activeSubTab]);
+
+  const saveSettings = () => {
+    localStorage.setItem('userSettings', JSON.stringify(settings));
+    toast.success('Ayarlar başarıyla kaydedildi!', {
+      position: 'top-center',
+      autoClose: 2000
+    });
+  };
+
+  const handlePrivacyChange = (key) => {
+    setSettings(prev => ({
+      ...prev,
+      privacy: {
+        ...prev.privacy,
+        [key]: !prev.privacy[key]
+      }
+    }));
+  };
+
+  const handleNotificationChange = (key) => {
+    setSettings(prev => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
+        [key]: !prev.notifications[key]
+      }
+    }));
+  };
+
+  const handleLanguageChange = (language) => {
+    setSettings(prev => ({
+      ...prev,
+      language
+    }));
+  };
+
+  const handleThemeChange = (theme) => {
+    setSettings(prev => ({
+      ...prev,
+      theme
+    }));
+    
+    // Tema değişikliğini hemen uygula
+    applyTheme(theme);
+    
+    // Local storage'a kaydet
+    localStorage.setItem('theme', theme);
+    
+    toast.success(`${theme === 'dark' ? 'Koyu' : 'Açık'} tema aktif edildi!`, {
+      position: 'top-center',
+      autoClose: 2000
+    });
+  };
+
+  const clearCache = () => {
+    // Belirli cache verilerini temizle (kullanıcı verilerini koru)
+    const keysToRemove = ['newsCache', 'paymentPointsCache', 'tempData'];
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+    });
+    
+    toast.success('Önbellek temizlendi!', {
+      position: 'top-center',
+      autoClose: 2000
+    });
+  };
+
+  const resetSettings = () => {
+    const defaultSettings = {
+      notifications: {
+        email: true,
+        push: true,
+        sms: false,
+        news: true,
+        promotions: true
+      },
+      privacy: {
+        profileVisible: true,
+        locationTracking: true,
+        dataSharing: false
+      },
+      language: 'tr',
+      theme: 'light',
+      currency: 'TRY'
+    };
+    
+    setSettings(defaultSettings);
+    applyTheme('light');
+    localStorage.setItem('theme', 'light');
+    
+    toast.info('Ayarlar varsayılana sıfırlandı!', {
+      position: 'top-center',
+      autoClose: 2000
+    });
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 min-h-[calc(100vh-56px)]">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center">
+            <div className="text-6xl mb-4">🔒</div>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Giriş Yapmanız Gerekiyor</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Ayarları görüntülemek ve düzenlemek için lütfen giriş yapın.
+            </p>
+            <button
+              onClick={() => AuthService.showLoginConfirmModal('Ayarları görüntüleme işlemini')}
+              className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            >
+              🔑 Giriş Yap
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Profil sekmesi içeriği
+  const renderProfileTab = () => {
+    return (
+      <div className="space-y-6">
+        {/* Kullanıcı Bilgileri */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+            👤 Hesap Bilgileri
+          </h2>
+          
+          {user ? (
+            <div className="space-y-6">
+              {/* Profil Fotoğrafı */}
+              <div className="flex items-center space-x-6">
+                <Avatar 
+                  user={user} 
+                  size="large" 
+                  onClick={() => handleAvatarClick()}
+                />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                    {user.firstName} {user.lastName}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">{user.email}</p>
+                  <button 
+                    onClick={handleAvatarClick}
+                    className="mt-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                    📷 Profil Fotoğrafını Değiştir
+                  </button>
+                </div>
+              </div>
+
+              {/* Detaylı Bilgiler */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ad</label>
+                    <input
+                      type="text"
+                      value={user.firstName || ''}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Soyad</label>
+                    <input
+                      type="text"
+                      value={user.lastName || ''}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">E-posta</label>
+                    <input
+                      type="email"
+                      value={user.email || ''}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      readOnly
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telefon</label>
+                    <input
+                      type="tel"
+                      value={user.phoneNumber || ''}
+                      placeholder="Telefon numarası belirtilmemiş"
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Üyelik Tarihi</label>
+                    <input
+                      type="text"
+                      value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kullanıcı ID</label>
+                    <input
+                      type="text"
+                      value={user.id || 'Bilinmiyor'}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      readOnly
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Güvenlik Seçenekleri */}
+              <div className="border-t dark:border-gray-700 pt-6">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">🔐 Güvenlik</h3>
+                <div className="space-y-3">
+                  <button className="w-full md:w-auto bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                    🔑 Şifreyi Değiştir
+                  </button>
+                  <button className="w-full md:w-auto bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700 text-white py-2 px-4 rounded-lg font-medium transition-colors ml-0 md:ml-3">
+                    📱 İki Faktörlü Doğrulama
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-4">👤</div>
+              <p className="text-gray-600 dark:text-gray-400">Profil bilgileri yüklenemedi.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Bildirimler sekmesi içeriği 
+  const renderNotificationsTab = () => {
+    return (
+      <div className="space-y-6">
+        {/* Bildirim Listesi */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center">
+              🔔 Bildirimlerim
+            </h2>
+            <div className="flex space-x-2">
+              <button 
+                onClick={markAllAsRead}
+                className="text-sm bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-800 dark:text-blue-200 py-1 px-3 rounded-md transition-colors"
+              >
+                Tümünü Okundu İşaretle
+              </button>
+            </div>
+          </div>
+
+          {/* Filtre Seçenekleri */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => changeNotificationType(null)}
+              className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                notificationType === null
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+              }`}
+            >
+              Tümü
+            </button>
+            <button
+              onClick={() => changeNotificationType('SUCCESS')}
+              className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                notificationType === 'SUCCESS'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+              }`}
+            >
+              ✅ Başarılı
+            </button>
+            <button
+              onClick={() => changeNotificationType('WARNING')}
+              className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                notificationType === 'WARNING'
+                  ? 'bg-yellow-500 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+              }`}
+            >
+              ⚠️ Uyarı
+            </button>
+            <button
+              onClick={() => changeNotificationType('ERROR')}
+              className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                notificationType === 'ERROR'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+              }`}
+            >
+              ❌ Hata
+            </button>
+          </div>
+          
+          {/* Yükleniyor göstergesi */}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Bildirimler yükleniyor...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-3">😔</div>
+              <p className="text-gray-700 dark:text-gray-300">{error}</p>
+            </div>
+          ) : notifications.length > 0 ? (
+            <>
+              <div className="space-y-4">
+                {notifications.map(notif => (
+                  <div 
+                    key={notif.id} 
+                    className={`border dark:border-gray-700 rounded-lg p-4 transition-colors ${
+                      notif.read 
+                        ? 'bg-white dark:bg-gray-800' 
+                        : 'bg-blue-50 dark:bg-blue-900/20'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <div className="text-2xl">{getNotificationIcon(notif.type)}</div>
+                      <div 
+                        className="flex-grow cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                        onClick={() => handleViewNotificationDetail(notif)}
+                      >
+                        <div className="flex justify-between">
+                          <h3 className={`font-semibold ${!notif.read ? 'text-blue-700 dark:text-blue-400' : 'text-gray-800 dark:text-white'}`}>
+                            {notif.title}
+                          </h3>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {new Date(notif.sentAt).toLocaleString('tr-TR', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300 mt-1">{notif.message}</p>
+                        <div className="mt-2 flex justify-end">
+                          {!notif.read && (
+                            <button 
+                              onClick={() => markAsRead(notif.id)}
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                            >
+                              Okundu İşaretle
+                            </button>
+                          )}
+                          {notif.targetUrl && (
+                            <a 
+                              href={notif.targetUrl} 
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ml-4"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              İlgili Sayfaya Git →
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Sayfalama */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-6">
+                  <div className="flex space-x-1">
+                    <button
+                      onClick={() => changePage(page - 1)}
+                      disabled={page === 0}
+                      className={`px-3 py-1 rounded border ${
+                        page === 0
+                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      ← Önceki
+                    </button>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => changePage(i)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                          page === i
+                            ? 'bg-blue-600 dark:bg-blue-700 text-white'
+                            : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    
+                    <button
+                      onClick={() => changePage(page + 1)}
+                      disabled={page === totalPages - 1}
+                      className={`px-3 py-1 rounded border ${
+                        page === totalPages - 1
+                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Sonraki →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-16">
+              <div className="text-5xl mb-4">📭</div>
+              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Hiç Bildiriminiz Yok</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                {notificationType ? 'Bu filtre için bildirim bulunamadı.' : 'Bildirimleriniz burada görüntülenecektir.'}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Ayarlar sekmesi içeriği
+  const renderSettingsTab = () => {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Bildirim Ayarları */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+              🔔 Bildirim Ayarları
+            </h2>
+            <div className="space-y-4">
+              {Object.entries({
+                email: 'E-posta Bildirimleri',
+                push: 'Push Bildirimleri',
+                sms: 'SMS Bildirimleri',
+                news: 'Haber Bildirimleri',
+                promotions: 'Promosyon Bildirimleri'
+              }).map(([key, label]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                  <button
+                    onClick={() => handleNotificationChange(key)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.notifications[key] ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.notifications[key] ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Gizlilik Ayarları */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+              🔐 Gizlilik Ayarları
+            </h2>
+            <div className="space-y-4">
+              {Object.entries({
+                profileVisible: 'Profil Görünürlüğü',
+                locationTracking: 'Konum Takibi',
+                dataSharing: 'Veri Paylaşımı'
+              }).map(([key, label]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                  <button
+                    onClick={() => handlePrivacyChange(key)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.privacy[key] ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.privacy[key] ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Dil ve Tema Ayarları */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+              🌍 Dil ve Tema
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-700 dark:text-gray-300 mb-2">Dil</label>
+                <select
+                  value={settings.language}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="tr">Türkçe</option>
+                  <option value="en">English</option>
+                  <option value="de">Deutsch</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700 dark:text-gray-300 mb-2">Tema</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['light', 'dark'].map(theme => (
+                    <button
+                      key={theme}
+                      onClick={() => handleThemeChange(theme)}
+                      className={`p-3 rounded-lg border transition-all ${
+                        settings.theme === theme
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 dark:bg-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {theme === 'light' ? '☀️ Açık' : '🌙 Koyu'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sistem Ayarları */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+              🛠️ Sistem Ayarları
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-700 dark:text-gray-300 mb-2">Para Birimi</label>
+                <select
+                  value={settings.currency}
+                  onChange={(e) => setSettings(prev => ({ ...prev, currency: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="TRY">TRY (₺)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={clearCache}
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                >
+                  🗑️ Önbelleği Temizle
+                </button>
+                <button
+                  onClick={resetSettings}
+                  className="w-full bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
+                >
+                  🔄 Ayarları Sıfırla
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* İkinci satır - tek kolon */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* Uygulama Bilgileri */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+              📱 Uygulama Bilgileri
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex justify-between md:flex-col md:justify-start">
+                <span className="font-medium text-gray-700 dark:text-gray-300">Versiyon:</span>
+                <span className="text-gray-600 dark:text-gray-400">1.0.0</span>
+              </div>
+              <div className="flex justify-between md:flex-col md:justify-start">
+                <span className="font-medium text-gray-700 dark:text-gray-300">Son Güncelleme:</span>
+                <span className="text-gray-600 dark:text-gray-400">22 Temmuz 2025</span>
+              </div>
+              <div className="flex justify-between md:flex-col md:justify-start">
+                <span className="font-medium text-gray-700 dark:text-gray-300">Geliştirici:</span>
+                <span className="text-gray-600 dark:text-gray-400">BinCard Team</span>
+              </div>
+            </div>
+            <div className="pt-4 border-t dark:border-gray-700 mt-4">
+              <button className="w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                📞 Destek İletişim
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Kaydet Butonu */}
+        <div className="text-center">
+          <button
+            onClick={saveSettings}
+            className="bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white py-3 px-8 rounded-lg font-bold text-lg transition-colors shadow-md"
+          >
+            💾 Ayarları Kaydet
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Avatar değiştirme modalı
+  const AvatarChangeModal = () => {
+    const [selectedAvatar, setSelectedAvatar] = useState(null);
+    
+    const handleClose = () => {
+      setShowAvatarModal(false);
+    };
+    
+    const handleSave = () => {
+      // Burada avatar güncelleme işlemi gerçekleşecek
+      toast.success("Avatar başarıyla güncellendi!", {
+        position: "top-center",
+        autoClose: 2000
+      });
+      setShowAvatarModal(false);
+    };
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md">
+          <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white">Profil Fotoğrafını Değiştir</h3>
+            <button 
+              onClick={handleClose}
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 text-lg"
+            >
+              &times;
+            </button>
+          </div>
+          <div className="p-6">
+            <div className="flex justify-center mb-6">
+              <Avatar user={user} size="xlarge" />
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-700 dark:text-gray-300 mb-4">Yeni bir avatar seçin veya yükleyin:</p>
+              
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                {['blue', 'green', 'purple', 'red'].map(color => (
+                  <button 
+                    key={color}
+                    className={`rounded-full w-12 h-12 transition-all ${selectedAvatar === color ? 'ring-4 ring-blue-500' : ''}`}
+                    style={{ background: `linear-gradient(to right, ${color}, ${color === 'blue' ? 'purple' : color === 'green' ? 'teal' : color === 'purple' ? 'pink' : 'orange'})` }}
+                    onClick={() => setSelectedAvatar(color)}
+                  />
+                ))}
+              </div>
+              
+              <div className="mb-4">
+                <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Resim yükle
+                </label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  className="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG (max. 2MB)</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Bildirim detay modalı
+  const NotificationDetailModal = () => {
+    const closeModal = () => {
+      setShowNotificationDetailModal(false);
+      setSelectedNotification(null);
+    };
+    
+    if (!selectedNotification) return null;
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+          <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+            <div className="flex items-center">
+              <span className="text-2xl mr-2">{getNotificationIcon(selectedNotification.type)}</span>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white">{selectedNotification.title}</h3>
+            </div>
+            <button 
+              onClick={closeModal}
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
+            >
+              &times;
+            </button>
+          </div>
+          
+          <div className="p-6">
+            {loadingDetail ? (
+              <div className="flex justify-center items-center py-10">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 dark:border-blue-400"></div>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="text-gray-500 dark:text-gray-400">
+                      <span className="text-sm font-medium">Tarih:</span> {new Date(selectedNotification.sentAt).toLocaleString('tr-TR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                    <div className={`text-sm font-medium ${
+                      selectedNotification.read ? 'text-gray-500 dark:text-gray-400' : 'text-blue-600 dark:text-blue-400'
+                    }`}>
+                      {selectedNotification.read ? 'Okundu' : 'Okunmadı'}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-lg leading-relaxed">
+                      {selectedNotification.message}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="border-t dark:border-gray-700 pt-4 flex justify-between items-center">
+                  {selectedNotification.targetUrl && (
+                    <a 
+                      href={selectedNotification.targetUrl} 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center"
+                    >
+                      İlgili Sayfaya Git <span className="ml-1">→</span>
+                    </a>
+                  )}
+                  <button 
+                    onClick={closeModal}
+                    className="ml-auto bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 min-h-[calc(100vh-56px)]">
+      {showAvatarModal && <AvatarChangeModal />}
+      {showNotificationDetailModal && <NotificationDetailModal />}
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-700 dark:to-blue-700 text-white rounded-xl shadow-md p-6 mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">⚙️ Ayarlar</h1>
+          <p className="opacity-90">
+            Hesap bilgilerinizi ve uygulama ayarlarınızı buradan yönetebilirsiniz.
+          </p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md mb-6">
+          <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setActiveSubTab('profile')}
+              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+                activeSubTab === 'profile'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-gray-700'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              👤 Profilim
+            </button>
+            <button
+              onClick={() => setActiveSubTab('notifications')}
+              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+                activeSubTab === 'notifications'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-gray-700'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              🔔 Bildirimlerim
+            </button>
+            <button
+              onClick={() => setActiveSubTab('settings')}
+              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+                activeSubTab === 'settings'
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-gray-700'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              ⚙️ Uygulama Ayarları
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeSubTab === 'profile' 
+          ? renderProfileTab() 
+          : activeSubTab === 'notifications'
+            ? renderNotificationsTab()
+            : renderSettingsTab()}
+      </div>
+    </div>
+  );
+};
+
+export default Settings;

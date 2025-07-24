@@ -698,7 +698,11 @@ const AuthService = {
       const handleYesClick = (e) => {
         e.preventDefault();
         closeModal();
-        navigate('/login');
+        if (typeof navigate === 'function') {
+          navigate('/login');
+        } else {
+          window.location.href = '/login';
+        }
         resolveOnce(true);
       };
       const handleNoClick = (e) => {
@@ -1054,22 +1058,33 @@ const AuthService = {
       console.log('[PROFILE] Token mevcut, API isteği yapılıyor...');
       
       try {
+        // Debug isteğin yapıldığını göster
+        console.log(`[PROFILE] GET isteği: http://localhost:8080/v1/api/user/profile`);
+        console.log(`[PROFILE] Headers: Bearer ${token.substring(0, 15)}...`);
+        
         const response = await axios.get('http://localhost:8080/v1/api/user/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-          }
+          },
+          timeout: 5000 // 5 saniye timeout ekleyelim
         });
         
         console.log('[PROFILE] Profil bilgisi başarıyla alındı:', response.data);
         
         const data = response.data;
+        if (!data) {
+          throw new Error('API boş veri döndürdü');
+        }
         
         // Profile data parsing logic...
         const profileData = {
-          firstName: data.firstName || data.first_name || data.ad || data.name || '',
-          lastName: data.lastName || data.last_name || data.soyad || data.surname || '',
+          id: data.id || data.userId || data.user_id || '',
+          firstName: data.firstName || data.first_name || data.ad || data.name || 'İsimsiz',
+          lastName: data.lastName || data.last_name || data.soyad || data.surname || 'Kullanıcı',
           email: data.email || data.mail || data.emailAddress || data.e_mail || '',
+          phoneNumber: data.phoneNumber || data.phone || data.telephone || data.tel || '',
+          createdAt: data.createdAt || data.created_at || data.registerDate || new Date().toISOString(),
           photoUrl: data.photoUrl || data.photo_url || data.profilePhoto || data.avatarUrl || '',
           _rawData: data
         };

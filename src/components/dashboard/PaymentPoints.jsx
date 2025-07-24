@@ -7,13 +7,14 @@ import { toast } from 'react-toastify';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBRYfrvFsxgARSM_iE7JA1EHu1nSpaWAxc';
 
 const PLACE_TYPES = [
+  { label: 'Ödeme Noktası', value: 'payment_point' }, // özel keyword ile arayacağız
   { label: 'Market', value: 'supermarket' },
   { label: 'Bakkal', value: 'convenience_store' },
   { label: 'Restoran', value: 'restaurant' },
   { label: 'Banka', value: 'bank' },
   { label: 'ATM', value: 'atm' },
   { label: 'Postane', value: 'post_office' },
-  { label: 'Ödeme Noktası', value: 'payment_point' }, // özel keyword ile arayacağız
+  
 ];
 
 const mapContainerStyle = {

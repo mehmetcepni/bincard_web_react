@@ -696,25 +696,16 @@ const News = () => {
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
             <h1 className="text-2xl font-bold text-blue-800 mb-2 md:mb-0">Güncel Haberler</h1>
-            
-            {/* Beğendiğim Haberler Linki */}
-            <button 
-              onClick={() => {
-                // Dashboard içindeki liked-news sekmesine geç
-                const currentUrl = window.location.href;
-                if (currentUrl.includes('/news')) {
-                  window.location.href = window.location.href.replace('/news', '/liked-news');
-                } else {
-                  window.location.href = '/liked-news';
-                }
-              }}
-              className="flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+          </div>
+          {/* Beğendiğim Haberler Butonu */}
+          <div className="mb-4 flex justify-end">
+            <button
+              onClick={() => navigate('/liked-news')}
+              className="flex items-center px-5 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white rounded-full shadow-lg hover:from-pink-600 hover:to-red-600 transition-all duration-300 font-semibold text-base gap-2"
             >
-              <span className="mr-2">❤️</span>
-              <span className="font-medium">Beğendiğim Haberler</span>
-              <span className="ml-2 bg-white bg-opacity-20 rounded-full px-2 py-1 text-xs">
-                {likedNews.size}
-              </span>
+              <span className="text-lg">❤️</span>
+              Beğendiğim Haberler
+              <span className="ml-2 bg-white/20 rounded-full px-2 py-1 text-xs">{likedNews.size}</span>
             </button>
           </div>
           

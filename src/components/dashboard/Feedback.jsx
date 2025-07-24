@@ -1,50 +1,59 @@
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 
-const FAQS = [
-  {
-    question: 'Geri bildirimlerime ne zaman yanıt alacağım?',
-    answer: 'Genellikle 24-48 saat içinde size geri dönüş yapıyoruz.'
-  },
-  {
-    question: 'Anonim geri bildirim verebilir miyim?',
-    answer: 'Evet, kimlik bilgilerinizi paylaşmak zorunda değilsiniz.'
-  },
-  {
-    question: 'Acil durumlar için nasıl iletişim kurabilirim?',
-    answer: 'Acil durumlar için 7/24 destek hattımızı arayabilirsiniz: 444 BİN KART'
-  }
+const FEEDBACK_TYPES = [
+  { id: 'SUGGESTION', label: 'Öneri' },
+  { id: 'COMPLAINT', label: 'Şikayet' },
+  { id: 'TECHNICAL_ISSUE', label: 'Teknik Sorun' },
+  { id: 'OTHER', label: 'Diğer' },
 ];
 
 const Feedback = () => {
-  const [feedbackType, setFeedbackType] = useState('suggestion');
-  const [rating, setRating] = useState(0);
+  const [type, setType] = useState('SUGGESTION');
+  const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [photo, setPhoto] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [openFaq, setOpenFaq] = useState(null);
 
-  const feedbackTypes = [
-    { id: 'suggestion', label: 'Öneri', icon: '💡', color: 'blue' },
-    { id: 'complaint', label: 'Şikayet', icon: '😞', color: 'red' },
-    { id: 'compliment', label: 'Övgü', icon: '👏', color: 'green' },
-    { id: 'bug', label: 'Hata Bildirimi', icon: '🐛', color: 'yellow' }
-  ];
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    setLoading(true);
+    setSubmitted(false);
+    try {
+      const formData = new FormData();
+      formData.append('type', type);
+      formData.append('subject', subject);
+      formData.append('message', message);
+      formData.append('source', 'web');
+      if (photo) formData.append('photo', photo);
+
+      const res = await fetch('http://localhost:8080/v1/api/feedback/send', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Geri bildirim gönderilemedi');
+      setSubmitted(true);
+      setSubject('');
+      setMessage('');
+      setType('SUGGESTION');
+      setPhoto(null);
+      toast.success('Geri bildiriminiz başarıyla gönderildi!');
+    } catch (err) {
+      toast.error(err.message || 'Bir hata oluştu.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-6">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">💬 Geri Bildirim</h1>
-          <p className="text-gray-600">Görüşleriniz bizim için değerli. Deneyiminizi paylaşın!</p>
+          <p className="text-gray-600">Görüşleriniz bizim için değerli. Lütfen geri bildiriminizi iletin.</p>
         </div>
-
-        {/* Success Message */}
         {submitted && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
@@ -55,127 +64,67 @@ const Feedback = () => {
             </div>
           </div>
         )}
-
-        {/* Feedback Form */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Feedback Type Selection */}
+          <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Geri bildirim türü seçin:
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {feedbackTypes.map(type => (
+              <label className="block text-sm font-medium text-gray-700 mb-2">Geri Bildirim Türü</label>
+              <div className="flex flex-wrap gap-3">
+                {FEEDBACK_TYPES.map((t) => (
                   <button
-                    key={type.id}
+                    key={t.id}
                     type="button"
-                    onClick={() => setFeedbackType(type.id)}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      feedbackType === type.id
-                        ? `border-${type.color}-500 bg-${type.color}-50`
-                        : 'border-gray-200 hover:border-gray-300 bg-gray-50'
-                    }`}
+                    onClick={() => setType(t.id)}
+                    className={`px-4 py-2 rounded-lg border-2 transition-all font-medium text-sm
+                      ${type === t.id ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-gray-50 hover:border-blue-300'}`}
                   >
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xl">{type.icon}</span>
-                      <span className="font-medium text-gray-800">{type.label}</span>
-                    </div>
+                    {t.label}
                   </button>
                 ))}
               </div>
             </div>
-
-            {/* Rating */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Genel memnuniyet dereceniz (1-5):
-              </label>
-              <div className="flex space-x-2">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    className="text-2xl transition-colors"
-                  >
-                    {star <= rating ? '⭐' : '☆'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Message */}
-            <div>
-              <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-3">
-                Mesajınız:
-              </label>
-              <textarea
-                id="message"
-                rows={6}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Deneyiminizi, önerilerinizi veya yaşadığınız sorunları detaylı olarak açıklayın..."
+              <label className="block text-sm font-medium text-gray-700 mb-2">Başlık</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Kısa bir başlık yazın..."
                 required
               />
             </div>
-
-            {/* Submit Button */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Mesajınız</label>
+              <textarea
+                rows={6}
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                placeholder="Geri bildiriminizi detaylıca yazın..."
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Fotoğraf veya Video (isteğe bağlı)</label>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={e => setPhoto(e.target.files[0])}
+                className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              {photo && (
+                <div className="mt-2 text-xs text-gray-500">Seçilen dosya: {photo.name}</div>
+              )}
+            </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2 disabled:opacity-60"
+              disabled={loading}
             >
               <span>📤</span>
-              <span>Geri Bildirimi Gönder</span>
+              <span>{loading ? 'Gönderiliyor...' : 'Geri Bildirimi Gönder'}</span>
             </button>
           </form>
-        </div>
-
-        {/* FAQ Section */}
-        <div className="mt-8 bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">🙋‍♀️ Sık Sorulan Sorular</h3>
-          <div className="space-y-2">
-            {FAQS.map((faq, idx) => {
-              const isOpen = openFaq === idx;
-              return (
-                <div
-                  key={idx}
-                  className={`last:border-b-0 ${isOpen ? '' : 'border-b border-gray-100'}`}
-                >
-                  <button
-                    type="button"
-                    className="w-full text-left flex items-center justify-between py-3 focus:outline-none"
-                    aria-expanded={isOpen}
-                    aria-controls={`faq-answer-${idx}`}
-                    onClick={() => setOpenFaq(isOpen ? null : idx)}
-                  >
-                    <span className="font-semibold text-gray-800">{faq.question}</span>
-                    <span className={`ml-2 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`}>▶</span>
-                  </button>
-                  <div
-                    id={`faq-answer-${idx}`}
-                    className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                    style={{
-                      maxHeight: isOpen ? 200 : 0,
-                      opacity: isOpen ? 1 : 0,
-                    }}
-                  >
-                    <div className="text-gray-600 text-sm pb-3 pl-1 pr-2">
-                      {faq.answer}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Placeholder Note */}
-        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-800 text-sm">
-            <strong>🚧 Geliştirme Aşamasında:</strong> Bu sayfa henüz tamamlanmamış bir protiptir. 
-            Yakında gerçek geri bildirim sistemi entegre edilecektir.
-          </p>
         </div>
       </div>
     </div>

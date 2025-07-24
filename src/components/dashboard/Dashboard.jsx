@@ -3,23 +3,23 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AuthService from '../../services/auth.service';
-import Profilim from './Profilim.jsx';
 import News from './News.jsx';
 import LikedNews from './LikedNews.jsx';
 import Wallet from './Wallet.jsx';
 import Feedback from './Feedback.jsx';
 import PaymentPoints from './PaymentPoints.jsx';
+import Settings from './Settings.jsx';
 import TokenDebug from '../debug/TokenDebug.jsx';
 
 const menuItems = [
   { text: 'Ana Sayfa', icon: '🏠', path: 'dashboard', key: 'dashboard' },
   { text: 'Cüzdan', icon: '👛', path: 'wallet', key: 'wallet' },
-  { text: 'Yakındaki Ödeme Noktaları', icon: '🏪', path: 'payment-points', key: 'payment-points' },
+  { text: 'Ödeme Noktaları', icon: '🏪', path: 'payment-points', key: 'payment-points' },
   { text: 'Geçmiş İşlemler', icon: '📜', path: 'history', key: 'history' },
   { text: 'Haberler', icon: '📰', path: 'news', key: 'news' },
   { text: 'Beğendiğim Haberler', icon: '❤️', path: 'liked-news', key: 'liked-news' },
   { text: 'Geri Bildirim', icon: '💬', path: 'feedback', key: 'feedback' },
-  { text: 'Profilim', icon: '👤', path: 'profilim', key: 'profilim' },
+  { text: 'Ayarlar', icon: '⚙️', path: 'settings', key: 'settings' },
   { text: 'Debug', icon: '🔧', path: 'debug', key: 'debug' },
 ];
 
@@ -32,6 +32,16 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Tema kontrolü
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
 
   // URL'ye göre aktif tab'ı belirle
   useEffect(() => {
@@ -52,14 +62,14 @@ const Dashboard = () => {
   }, []);
 
   const handleNavigation = async (item) => {
-    if ((item.key === 'profilim' || item.key === 'liked-news' || item.key === 'payment-points') && !AuthService.isAuthenticated()) {
+    if ((item.key === 'liked-news' || item.key === 'payment-points' || item.key === 'settings') && !AuthService.isAuthenticated()) {
       // Giriş yapılmamışsa modal aç
       const result = await AuthService.showLoginConfirmModal(
-        item.key === 'profilim'
-          ? 'Profil bilgilerinizi görüntüleme işlemini'
-          : item.key === 'liked-news'
-            ? 'Beğenilen haberleri görüntüleme işlemini'
-            : 'Yakındaki ödeme noktalarını görüntüleme işlemini',
+        item.key === 'liked-news'
+          ? 'Beğenilen haberleri görüntüleme işlemini'
+          : item.key === 'payment-points'
+            ? 'Yakındaki ödeme noktalarını görüntüleme işlemini'
+            : 'Ayarları görüntüleme işlemini',
         navigate
       );
       // Evet derse zaten modal fonksiyonu login'e yönlendiriyor, hayır derse hiçbir şey yapma
@@ -82,8 +92,6 @@ const Dashboard = () => {
   // Hangi component'i render edeceğini belirle
   const renderContent = () => {
     switch (activeTab) {
-      case 'profilim':
-        return <Profilim />;
       case 'news':
         return <News />;
       case 'liked-news':
@@ -94,6 +102,8 @@ const Dashboard = () => {
         return <Feedback />;
       case 'payment-points':
         return <PaymentPoints />;
+      case 'settings':
+        return <Settings />;
       case 'debug':
         return <TokenDebug />;
       case 'dashboard':
@@ -103,14 +113,14 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen">
+    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
       {/* Header */}
-      <header className="fixed top-0 left-0 w-full h-14 flex items-center justify-between px-4 bg-white border-b border-gray-100 z-40 shadow-sm">
+      <header className="fixed top-0 left-0 w-full h-14 flex items-center justify-between px-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 z-40 shadow-sm">
         <div className="flex items-center">
-          <button className="md:hidden mr-2 text-gray-500" onClick={() => setSidebarOpen(true)}>
+          <button className="md:hidden mr-2 text-gray-500 dark:text-gray-400" onClick={() => setSidebarOpen(true)}>
             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <span className="text-base font-bold text-blue-700 tracking-tight">Dashboard</span>
+          <span className="text-base font-bold text-blue-700 dark:text-blue-400 tracking-tight">Dashboard</span>
         </div>
         
         {/* Auth Button */}
@@ -118,8 +128,8 @@ const Dashboard = () => {
           onClick={handleAuthAction}
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             isAuthenticated 
-              ? 'bg-red-500 hover:bg-red-600 text-white' 
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              ? 'bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white' 
+              : 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white'
           }`}
         >
           {isAuthenticated ? '🚪 Çıkış' : '🔑 Giriş Yap'}
@@ -127,33 +137,43 @@ const Dashboard = () => {
       </header>
 
       {/* Sidebar */}
-      <aside className={`fixed top-14 left-0 h-[calc(100vh-56px)] w-56 bg-white border-r border-gray-200 flex flex-col z-30 transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-56'} md:translate-x-0`}>
-        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100 md:hidden">
-          <span className="text-lg font-bold text-blue-700 tracking-tight">BinCard</span>
-          <button className="text-gray-500" onClick={() => setSidebarOpen(false)}>
+      <aside className={`fixed top-14 left-0 h-[calc(100vh-56px)] w-56 bg-white/70 dark:bg-gray-800/90 border-r border-gray-200 dark:border-gray-700 flex flex-col z-30 transition-transform duration-200 shadow-xl backdrop-blur-md ${sidebarOpen ? 'translate-x-0' : '-translate-x-56'} md:translate-x-0`}>
+        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100 dark:border-gray-700 md:hidden">
+          <span className="text-lg font-bold text-blue-700 dark:text-blue-400 tracking-tight">BinCard</span>
+          <button className="text-gray-500 dark:text-gray-400" onClick={() => setSidebarOpen(false)}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
-        <nav className="flex-1 py-2 overflow-y-auto">
-          {menuItems.map(item => (
-            <button
+        <nav className="flex-1 py-4 overflow-y-auto relative">
+          {/* Vertical line */}
+          <div className="absolute left-8 top-4 h-[calc(100%-2rem)] w-1 bg-gradient-to-b from-blue-300 via-blue-100 to-purple-200 dark:from-blue-600 dark:via-blue-500 dark:to-purple-500 rounded-full pointer-events-none shadow-md" />
+          <div className="flex flex-col gap-2">
+            {menuItems.map((item, idx) => (
+              <button
                 key={item.text}
                 onClick={() => handleNavigation(item)}
-              className={`flex items-center w-full px-4 py-2 transition rounded-lg mb-1 font-medium ${
-                activeTab === item.key 
-                  ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-600' 
-                  : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
-              }`}
-            >
-              <span className="mr-3 text-lg">{item.icon}</span>
-              {item.text}
-            </button>
-          ))}
+                className={`relative flex items-center w-full pl-16 pr-4 py-3 transition-all duration-200 rounded-xl font-semibold text-base bg-transparent group
+                  ${activeTab === item.key ? 'bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-800 dark:text-blue-300 shadow-md' : 'text-gray-700 dark:text-gray-300 hover:bg-blue-50/80 dark:hover:bg-gray-700/50 hover:text-blue-700 dark:hover:text-blue-400'}
+                `}
+                style={{ minHeight: '48px' }}
+              >
+                {/* Dot for each menu item */}
+                <span className={`absolute left-6 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full transition-all duration-200 shadow-md
+                  ${activeTab === item.key ? 'bg-gradient-to-br from-blue-500 to-purple-500 scale-125 shadow-lg' : 'bg-blue-100 dark:bg-blue-800 group-hover:bg-blue-300 dark:group-hover:bg-blue-600'}
+                `} />
+                <span className={`transition-all duration-200 tracking-wide
+  ${activeTab === item.key ? `font-extrabold text-lg bg-gradient-to-r from-blue-700 via-purple-600 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(99,102,241,0.25)]
+    after:content-[''] after:block after:h-1 after:rounded-full after:mt-1 after:bg-gradient-to-r after:from-blue-400 after:to-purple-400 after:opacity-70` :
+    'group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:drop-shadow-[0_2px_8px_rgba(99,102,241,0.10)] text-base'}
+`}>{item.text}</span>
+              </button>
+            ))}
+          </div>
         </nav>
       </aside>
 
       {/* Overlay for mobile */}
-      {sidebarOpen && <div className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && <div className="fixed inset-0 bg-black bg-opacity-30 dark:bg-opacity-50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />}
 
       {/* Main content */}
       <div className="pt-14 md:pl-56 min-h-screen">
