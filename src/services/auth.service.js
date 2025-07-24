@@ -454,6 +454,10 @@ const AuthService = {
       if (data && data.accessToken && data.refreshToken) {
         localStorage.setItem('accessToken', data.accessToken.token);
         localStorage.setItem('refreshToken', data.refreshToken.token);
+        
+        // Auto-refresh mekanizmasını başlat
+        AuthService.startAutoRefresh();
+        
         return { 
           success: true, 
           data: data,
@@ -583,10 +587,49 @@ const AuthService = {
     }
   },
 
-  // Token kontrolü
+  // Token kontrolü - geliştirilmiş versiyon
   isAuthenticated: () => {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    return !!token;
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      
+      if (!token) {
+        console.log('[AUTH] Token bulunamadı');
+        return false;
+      }
+      
+      // Token formatını kontrol et (JWT olup olmadığını basitçe kontrol et)
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        console.warn('[AUTH] Token formatı geçersiz');
+        // Geçersiz token'ı temizle
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('token');
+        return false;
+      }
+      
+      // Token süresi kontrolü (isteğe bağlı)
+      try {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+        
+        if (payload.exp && payload.exp < currentTime) {
+          console.warn('[AUTH] Token süresi dolmuş');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          return false;
+        }
+      } catch (parseError) {
+        console.warn('[AUTH] Token payload parse edilemedi:', parseError);
+        // Parse hatası olsa bile token'ı geçerli say, backend kontrol edecek
+      }
+      
+      console.log('[AUTH] Token geçerli görünüyor');
+      return true;
+    } catch (error) {
+      console.error('[AUTH] Token kontrol hatası:', error);
+      return false;
+    }
   },
 
   // Kullanıcının giriş yapmış olup olmadığını kontrol et ve gerekirse login'e yönlendir
@@ -1130,111 +1173,89 @@ const AuthService = {
   // Kullanıcı profilini güncelleyen fonksiyon
   updateProfile: async (updateData) => {
     try {
-      console.log('[PROFILE] Profil güncelleniyor:', updateData);
+      console.log('[PROFILE_UPDATE] Profil güncelleniyor:', updateData);
       
       // Girilen değerlerin boş olup olmadığını kontrol et
       if (!updateData.firstName || !updateData.lastName) {
         throw new Error('Ad ve soyad alanları boş bırakılamaz!');
       }
       
-      // Backend'in beklediği tam parametreleri kontrol etmek için olası tüm alan adlarını deneyeceğiz
-      // Java Spring Boot backend'in UpdateProfileRequest sınıfında hangi alanları beklediğini bilmiyoruz
-      // bu nedenle birkaç olası varyantı deneyeceğiz
+      // Backend'in beklediği UpdateProfileRequest formatı
       const requestData = {
-        // Camel case (Java standart)
-        firstName: updateData.firstName,
-        lastName: updateData.lastName,
-        email: updateData.email,
-        
-        // Alternatif alan adları (Türkçe)
-        ad: updateData.firstName, 
-        soyad: updateData.lastName,
-        
-        // Snake case
-        first_name: updateData.firstName,
-        last_name: updateData.lastName,
-        
-        // Diğer varyantlar
-        name: updateData.firstName,
-        surname: updateData.lastName
+        firstName: updateData.firstName.trim(),
+        lastName: updateData.lastName.trim(),
+        email: updateData.email ? updateData.email.trim() : null
       };
       
-      console.log('[PROFILE] Backend\'e gönderilecek genişletilmiş veri:', requestData);
+      console.log('[PROFILE_UPDATE] Backend\'e gönderilecek UpdateProfileRequest:', requestData);
       
-      try {
-        // Request öncesi detaylı log
-        console.log('[PROFILE] Profil güncellemesi için HTTP isteği yapılıyor:');
-        console.log('- Endpoint: http://localhost:8080/v1/api/user/profile');
-        console.log('- Metod: PUT');
-        console.log('- Veri:', JSON.stringify(requestData, null, 2));
-        
-        // Backend'deki @PutMapping("/profile") ile eşleşen endpoint
-        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-        if (!token) {
-          throw new Error('Oturum bulunamadı! Lütfen tekrar giriş yapın.');
-        }
-
-        console.log('[PROFILE] Yetkilendirme token:', token.substring(0, 15) + '...');
-        
-        const response = await axios.put('http://localhost:8080/v1/api/user/profile', requestData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        console.log('[PROFILE] Profil başarıyla güncellendi:', response.data);
-        
-        // Backend'den dönen veriyi işle
-        const responseData = response.data || {};
-        
-        // Backend'den gelen tüm olası alan adlarını kontrol et
-        const updatedProfile = {
-          message: responseData.message || 'Profil bilgileriniz başarıyla güncellendi.',
-          
-          // Öncelikle backend yanıtındaki alanları kontrol et
-          firstName: responseData.firstName || responseData.first_name || responseData.ad || responseData.name || updateData.firstName,
-          lastName: responseData.lastName || responseData.last_name || responseData.soyad || responseData.surname || updateData.lastName,
-          
-          // Email için özel olarak tüm olası alanları kontrol et
-          email: responseData.email || responseData.mail || responseData.emailAddress || responseData.e_mail || updateData.email,
-          
-          // Diğer alanları da ekle
-          ...responseData
-        };
-        
-        console.log('[PROFILE] Döndürülen güncellenmiş profil:', updatedProfile);
-        
-        // Profil bilgisini localStorage'a da kaydedelim, böylece API bağlantısı olmasa bile 
-        // son bilinen profil bilgisini gösterebiliriz
-        localStorage.setItem('lastKnownProfile', JSON.stringify(updatedProfile));
-        
-        return updatedProfile;
-      } catch (apiError) {
-        console.warn('[PROFILE] API hatası, istemci tarafında güncellenmiş veri döndürülüyor:', apiError);
-        
-        // API hatası durumunda, kullanıcının gönderdiği bilgileri geri döndür
-        const fallbackProfile = { 
-          message: 'Profil bilgileriniz güncellendi (sunucu yanıtı alınamadı).',
-          firstName: updateData.firstName,
-          lastName: updateData.lastName,
-          email: updateData.email,
-          // Alternatif alan adları
-          ad: updateData.firstName,
-          soyad: updateData.lastName,
-          first_name: updateData.firstName,
-          last_name: updateData.lastName,
-          name: updateData.firstName,
-          surname: updateData.lastName
-        };
-        
-        // Önbellekte de saklayalım
-        localStorage.setItem('lastKnownProfile', JSON.stringify(fallbackProfile));
-        
-        return fallbackProfile;
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Oturum bulunamadı! Lütfen tekrar giriş yapın.');
       }
+
+      console.log('[PROFILE_UPDATE] HTTP PUT isteği yapılıyor...');
+      console.log('[PROFILE_UPDATE] Endpoint: http://localhost:8080/v1/api/user/profile');
+      console.log('[PROFILE_UPDATE] Headers: Authorization Bearer token');
+      
+      const response = await axios.put('http://localhost:8080/v1/api/user/profile', requestData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('[PROFILE_UPDATE] Profil başarıyla güncellendi - Response:', response.data);
+      console.log('[PROFILE_UPDATE] Response Status:', response.status);
+      console.log('[PROFILE_UPDATE] Response Headers:', response.headers);
+      
+      // Backend'den gelen ResponseMessage'ı işle
+      const responseData = response.data;
+      
+      // Response data'yı detaylı logla
+      console.log('[PROFILE_UPDATE] Response Data Detay:', {
+        success: responseData.success,
+        message: responseData.message,
+        data: responseData.data,
+        fullResponse: responseData
+      });
+      
+      return {
+        success: responseData.success !== false,
+        message: responseData.message || 'Profil bilgileriniz başarıyla güncellendi.',
+        data: responseData
+      };
     } catch (error) {
-      console.error('[PROFILE] Profil güncellenemedi:', error);
-      return handleError(error);
+      console.error('[PROFILE_UPDATE] Profil güncellenemedi:', error);
+      
+      // Detaylı hata bilgisi
+      if (error.response) {
+        console.error('[PROFILE_UPDATE] API Hatası:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+        
+        // Backend'den gelen özel hata mesajları
+        const backendMessage = error.response.data?.message;
+        
+        if (error.response.status === 401) {
+          throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
+        } else if (error.response.status === 403) {
+          throw new Error('Bu işlem için yetkiniz bulunmuyor.');
+        } else if (error.response.status === 404) {
+          throw new Error('Kullanıcı bulunamadı. Lütfen tekrar giriş yapın.');
+        } else if (error.response.status === 409) {
+          throw new Error('Bu e-posta adresi zaten kullanılıyor.');
+        } else if (backendMessage) {
+          throw new Error(backendMessage);
+        }
+      }
+      
+      // Genel hata mesajı
+      const errorMessage = error.message || 'Profil güncellenirken bir hata oluştu.';
+      throw new Error(errorMessage);
     }
   },
 
@@ -1248,53 +1269,75 @@ const AuthService = {
         throw new Error('Fotoğraf boyutu 5MB\'dan küçük olmalıdır!');
       }
       
-      console.log('[PROFILE_PHOTO] Fotoğraf yükleniyor:', photoFile.name, photoFile.size);
+      console.log('[PROFILE_PHOTO] Fotoğraf yükleniyor:', {
+        name: photoFile.name,
+        size: photoFile.size,
+        type: photoFile.type
+      });
       
-      // Backend'in beklediği parametre adı "photo" olmalı
+      // Token kontrolü
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Oturum bulunamadı! Lütfen tekrar giriş yapın.');
+      }
+      
+      // FormData oluştur - backend @RequestParam("photo") bekliyor
       const formData = new FormData();
       formData.append('photo', photoFile);
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       
-      console.log('[PROFILE_PHOTO] FormData içeriği:', formData);
-      console.log('[PROFILE_PHOTO] Fotoğraf adı:', photoFile.name);
-      console.log('[PROFILE_PHOTO] Fotoğraf tipi:', photoFile.type);
-      console.log('[PROFILE_PHOTO] Fotoğraf boyutu:', photoFile.size);
+      console.log('[PROFILE_PHOTO] FormData hazırlandı, API isteği gönderiliyor...');
+      console.log('[PROFILE_PHOTO] Endpoint: PUT /v1/api/user/profile/photo');
+      console.log('[PROFILE_PHOTO] Parameter: photo =', photoFile.name);
       
-      try {
-        // @PutMapping("/profile/photo") endpoint'i ile uyumlu
-        // @RequestParam("photo") MultipartFile parametresi için doğru isim kullanılmalı
-        console.log('[PROFILE_PHOTO] PUT isteği: http://localhost:8080/v1/api/user/profile/photo');
-        console.log('[PROFILE_PHOTO] FormData içinde "photo" parametresi gönderiliyor');
-        
-        const response = await axios.put('http://localhost:8080/v1/api/user/profile/photo', formData, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-            // Content-Type header'ını axios otomatik ekleyecek
-            // ve doğru boundary değeri ile multipart/form-data olarak ayarlayacak
-          },
-          // Dosya yükleme ilerleme bilgisi ekle
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log(`[PROFILE_PHOTO] Yükleme ilerleme: %${percentCompleted}`);
-          }
-        });
-        
-        console.log('[PROFILE_PHOTO] Fotoğraf başarıyla yüklendi:', response.data);
-        return response.data;
-      } catch (apiError) {
-        console.error('[PROFILE_PHOTO] API hatası:', apiError);
-        console.error('[PROFILE_PHOTO] Hata detayları:', {
-          status: apiError.response?.status,
-          statusText: apiError.response?.statusText,
-          data: apiError.response?.data,
-          headers: apiError.response?.headers
-        });
-        throw new Error(apiError.response?.data?.message || 'Fotoğraf yüklenemedi.');
-      }
+      const response = await axios.put('http://localhost:8080/v1/api/user/profile/photo', formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // Content-Type'ı manuel olarak eklemeyin, axios otomatik multipart/form-data ekleyecek
+        },
+        timeout: 30000, // 30 saniye timeout (dosya yükleme için)
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`[PROFILE_PHOTO] Yükleme ilerleme: %${percentCompleted}`);
+        }
+      });
+      
+      console.log('[PROFILE_PHOTO] Fotoğraf başarıyla yüklendi:', response.data);
+      
+      // Backend'den ResponseMessage döndürüyor
+      const responseData = response.data;
+      
+      return {
+        success: responseData.success !== false,
+        message: responseData.message || 'Profil fotoğrafı başarıyla güncellendi!',
+        data: responseData
+      };
     } catch (error) {
-      console.error('[PROFILE] Profil fotoğrafı güncellenemedi:', error);
+      console.error('[PROFILE_PHOTO] Profil fotoğrafı güncellenemedi:', error);
       
-      // Tutarlı hata mesajı formatı için
+      // Detaylı hata bilgisi
+      if (error.response) {
+        console.error('[PROFILE_PHOTO] API Hatası:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+        
+        // Backend'den gelen özel hata mesajları
+        const backendMessage = error.response.data?.message;
+        
+        if (error.response.status === 413) {
+          throw new Error('Dosya boyutu çok büyük. Lütfen 5MB\'dan küçük bir dosya seçin.');
+        } else if (error.response.status === 415) {
+          throw new Error('Desteklenmeyen dosya formatı. Lütfen PNG, JPG veya JPEG dosyası seçin.');
+        } else if (error.response.status === 401) {
+          throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
+        } else if (backendMessage) {
+          throw new Error(backendMessage);
+        }
+      }
+      
+      // Genel hata mesajı
       const errorMessage = error.message || 'Profil fotoğrafı güncellenirken bir hata oluştu.';
       throw new Error(errorMessage);
     }
@@ -1436,9 +1479,161 @@ const AuthService = {
     }
   },
 
+  // Token'ların expiry zamanını kontrol et
+  getTokenExpirationTime: (token) => {
+    try {
+      if (!token) return null;
+      
+      const base64Url = token.split('.')[1];
+      if (!base64Url) return null;
+      
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const payload = JSON.parse(jsonPayload);
+      return payload.exp ? payload.exp * 1000 : null; // Convert to milliseconds
+    } catch (error) {
+      console.error('Token expiry zamanı okunamadı:', error);
+      return null;
+    }
+  },
+
+  // Token'ın ne kadar süre sonra expire olacağını kontrol et (dakika cinsinden)
+  getTokenTimeToExpiry: (token) => {
+    const expirationTime = AuthService.getTokenExpirationTime(token);
+    if (!expirationTime) return null;
+    
+    const now = Date.now();
+    const timeLeft = expirationTime - now;
+    return Math.floor(timeLeft / (1000 * 60)); // Dakika cinsinden
+  },
+
+  // Auto-refresh timer'ı başlat
+  startAutoRefresh: () => {
+    // Mevcut timer'ı temizle
+    AuthService.stopAutoRefresh();
+    
+    const checkAndRefresh = async () => {
+      try {
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+        const refreshToken = localStorage.getItem('refreshToken');
+        
+        if (!token || !refreshToken) {
+          console.log('[AUTO_REFRESH] Token veya refresh token bulunamadı');
+          AuthService.stopAutoRefresh();
+          return;
+        }
+        
+        const timeToExpiry = AuthService.getTokenTimeToExpiry(token);
+        console.log(`[AUTO_REFRESH] Token ${timeToExpiry} dakika sonra expire olacak`);
+        
+        // Token 5 dakika içinde expire olacaksa refresh yap
+        if (timeToExpiry !== null && timeToExpiry <= 5) {
+          console.log('[AUTO_REFRESH] Token yakında expire olacak, refresh yapılıyor...');
+          
+          try {
+            const refreshResult = await AuthService.refreshToken(refreshToken);
+            
+            if (refreshResult.success && refreshResult.accessToken && refreshResult.refreshToken) {
+              localStorage.setItem('accessToken', refreshResult.accessToken.token);
+              localStorage.setItem('refreshToken', refreshResult.refreshToken.token);
+              console.log('[AUTO_REFRESH] Token başarıyla yenilendi');
+            } else {
+              console.error('[AUTO_REFRESH] Token yenilenemedi:', refreshResult);
+              AuthService.logout();
+            }
+          } catch (error) {
+            console.error('[AUTO_REFRESH] Token yenileme hatası:', error);
+            AuthService.logout();
+          }
+        }
+      } catch (error) {
+        console.error('[AUTO_REFRESH] Kontrol hatası:', error);
+      }
+    };
+    
+    // İlk kontrolü hemen yap
+    checkAndRefresh();
+    
+    // Her 2 dakikada bir kontrol et
+    window.authRefreshInterval = setInterval(checkAndRefresh, 2 * 60 * 1000);
+    console.log('[AUTO_REFRESH] Otomatik token yenileme başlatıldı');
+  },
+
+  // Auto-refresh timer'ı durdur
+  stopAutoRefresh: () => {
+    if (window.authRefreshInterval) {
+      clearInterval(window.authRefreshInterval);
+      window.authRefreshInterval = null;
+      console.log('[AUTO_REFRESH] Otomatik token yenileme durduruldu');
+    }
+  },
+
+  // Manual refresh token işlemi
+  manualRefreshToken: async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (!refreshToken) {
+        throw new Error('Refresh token bulunamadı');
+      }
+      
+      console.log('[MANUAL_REFRESH] Manuel token yenileme başlatıldı');
+      const result = await AuthService.refreshToken(refreshToken);
+      
+      if (result.success && result.accessToken && result.refreshToken) {
+        localStorage.setItem('accessToken', result.accessToken.token);
+        localStorage.setItem('refreshToken', result.refreshToken.token);
+        console.log('[MANUAL_REFRESH] Token başarıyla yenilendi');
+        return { success: true, message: 'Token başarıyla yenilendi' };
+      } else {
+        throw new Error(result.message || 'Token yenilenemedi');
+      }
+    } catch (error) {
+      console.error('[MANUAL_REFRESH] Token yenileme hatası:', error);
+      return { success: false, message: error.message };
+    }
+  },
+
+  // Token'ların geçerliliğini kontrol et ve gerekirse yenile
+  validateAndRefreshTokens: async () => {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (!token || !refreshToken) {
+        return { valid: false, message: 'Token bulunamadı' };
+      }
+      
+      const timeToExpiry = AuthService.getTokenTimeToExpiry(token);
+      
+      // Token geçersiz veya 1 dakika içinde expire olacaksa
+      if (timeToExpiry === null || timeToExpiry <= 1) {
+        console.log('[VALIDATE] Token geçersiz veya yakında expire olacak, yenileniyor...');
+        
+        const refreshResult = await AuthService.manualRefreshToken();
+        if (refreshResult.success) {
+          return { valid: true, refreshed: true, message: 'Token yenilendi' };
+        } else {
+          return { valid: false, message: refreshResult.message };
+        }
+      }
+      
+      return { valid: true, refreshed: false, timeToExpiry, message: 'Token geçerli' };
+    } catch (error) {
+      console.error('[VALIDATE] Token doğrulama hatası:', error);
+      return { valid: false, message: error.message };
+    }
+  },
+
   // Token'ları tamamen temizleme (Deep Clean)
   clearAllTokens: () => {
     console.log('[CLEAR_TOKENS] Tüm token\'lar ve veriler temizleniyor...');
+    
+    // Auto-refresh'i durdur
+    AuthService.stopAutoRefresh();
     
     // localStorage'dan tüm auth bilgilerini sil
     const authKeys = [

@@ -15,11 +15,11 @@ const statusLabels = {
   FAILED: 'Başarısız',
 };
 
-function formatDateTime(dt) {
+const formatDateTime = (dt) => {
   if (!dt) return '-';
   const d = new Date(dt);
   return d.toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' });
-}
+};
 
 const TransferDetail = ({ transferId }) => {
   const [transfer, setTransfer] = useState(null);

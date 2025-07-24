@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AuthService from '../../services/auth.service';
+import WalletService from '../../services/wallet.service';
 import News from './News.jsx';
 import LikedNews from './LikedNews.jsx';
 import Wallet from './Wallet.jsx';
@@ -32,6 +33,8 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [walletData, setWalletData] = useState(null);
+  const [isLoadingWallet, setIsLoadingWallet] = useState(false);
 
   // Tema kontrolü
   useEffect(() => {
@@ -52,32 +55,83 @@ const Dashboard = () => {
   // Auth durumunu kontrol et
   useEffect(() => {
     const checkAuth = () => {
-      setIsAuthenticated(AuthService.isAuthenticated());
+      try {
+        const authStatus = AuthService.isAuthenticated();
+        console.log('Dashboard auth check:', authStatus);
+        setIsAuthenticated(authStatus);
+        
+        // Token yoksa veya geçersizse login'e yönlendir
+        if (!authStatus) {
+          console.log('Dashboard: User not authenticated, checking if should redirect');
+          // Sadece protected route'larda redirect yap
+          const protectedRoutes = ['/liked-news', '/payment-points', '/settings', '/wallet', '/transfer-detail'];
+          if (protectedRoutes.includes(location.pathname)) {
+            console.log('Dashboard: Redirecting to login from protected route');
+            navigate('/login');
+          }
+          setWalletData(null); // Auth yoksa wallet data'yı temizle
+        }
+      } catch (error) {
+        console.error('Dashboard auth check error:', error);
+        setIsAuthenticated(false);
+        setWalletData(null);
+      }
     };
+    
     checkAuth();
     
-    // Auth durumu değişikliklerini dinle
-    const interval = setInterval(checkAuth, 1000);
+    // Auth durumu değişikliklerini dinle (daha az sıklıkta)
+    const interval = setInterval(checkAuth, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [navigate, location.pathname]);
+
+  // Wallet bilgisini çek (sadece authenticated kullanıcılar için)
+  useEffect(() => {
+    const fetchWalletData = async () => {
+      if (!isAuthenticated) {
+        setWalletData(null);
+        return;
+      }
+
+      setIsLoadingWallet(true);
+      try {
+        console.log('[DASHBOARD] Wallet bilgisi çekiliyor...');
+        const data = await WalletService.getMyWallet();
+        console.log('[DASHBOARD] Wallet bilgisi alındı:', data);
+        setWalletData(data);
+      } catch (error) {
+        console.error('[DASHBOARD] Wallet bilgisi alınamadı:', error);
+        // Hata durumunda wallet data'yı null yap
+        setWalletData(null);
+      } finally {
+        setIsLoadingWallet(false);
+      }
+    };
+
+    fetchWalletData();
+  }, [isAuthenticated]);
 
   const handleNavigation = async (item) => {
-    if ((item.key === 'liked-news' || item.key === 'payment-points' || item.key === 'settings') && !AuthService.isAuthenticated()) {
-      // Giriş yapılmamışsa modal aç
-      const result = await AuthService.showLoginConfirmModal(
-        item.key === 'liked-news'
-          ? 'Beğenilen haberleri görüntüleme işlemini'
-          : item.key === 'payment-points'
-            ? 'Yakındaki ödeme noktalarını görüntüleme işlemini'
-            : 'Ayarları görüntüleme işlemini',
-        navigate
-      );
-      // Evet derse zaten modal fonksiyonu login'e yönlendiriyor, hayır derse hiçbir şey yapma
-      return;
+    try {
+      if ((item.key === 'liked-news' || item.key === 'payment-points' || item.key === 'settings') && !AuthService.isAuthenticated()) {
+        // Giriş yapılmamışsa modal aç
+        const result = await AuthService.showLoginConfirmModal(
+          item.key === 'liked-news'
+            ? 'Beğenilen haberleri görüntüleme işlemini'
+            : item.key === 'payment-points'
+              ? 'Yakındaki ödeme noktalarını görüntüleme işlemini'
+              : 'Ayarları görüntüleme işlemini',
+          navigate
+        );
+        // Evet derse zaten modal fonksiyonu login'e yönlendiriyor, hayır derse hiçbir şey yapma
+        return;
+      }
+      setActiveTab(item.key);
+      navigate(`/${item.path}`);
+      setSidebarOpen(false);
+    } catch (error) {
+      console.error('Navigation error:', error);
     }
-    setActiveTab(item.key);
-    navigate(`/${item.path}`);
-    setSidebarOpen(false);
   };
 
   const handleAuthAction = () => {
@@ -108,7 +162,11 @@ const Dashboard = () => {
         return <TokenDebug />;
       case 'dashboard':
       default:
-        return <DashboardHome />;
+        return <DashboardHome 
+          isAuthenticated={isAuthenticated}
+          walletData={walletData}
+          isLoadingWallet={isLoadingWallet}
+        />;
     }
   };
 
@@ -185,7 +243,7 @@ const Dashboard = () => {
 };
 
 // Ana dashboard içeriği için ayrı component
-const DashboardHome = () => {
+const DashboardHome = ({ isAuthenticated: authProp, walletData, isLoadingWallet }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -193,7 +251,7 @@ const DashboardHome = () => {
   // Kullanıcı durumunu kontrol et
   useEffect(() => {
     const checkAuth = () => {
-      const authStatus = AuthService.isAuthenticated();
+      const authStatus = authProp !== undefined ? authProp : AuthService.isAuthenticated();
       setIsAuthenticated(authStatus);
       
       if (authStatus) {
@@ -210,7 +268,7 @@ const DashboardHome = () => {
     };
 
     checkAuth();
-  }, []);
+  }, [authProp]);
 
   // Auth gerektiren işlemler için kontrol fonksiyonu
   const handleAuthRequired = (action, path) => {
@@ -225,10 +283,22 @@ const DashboardHome = () => {
     return true;
   };
 
+  // Bakiye formatını düzenle
+  const formatBalance = (balance) => {
+    if (balance === null || balance === undefined) return '₺0,00';
+    return `₺${parseFloat(balance).toFixed(2).replace('.', ',')}`;
+  };
+
   const cards = [
     {
       title: 'Bakiye',
-      value: isAuthenticated ? '₺150,00' : 'Giriş Yapın',
+      value: isAuthenticated 
+        ? isLoadingWallet 
+          ? 'Yükleniyor...' 
+          : walletData 
+            ? formatBalance(walletData.balance || walletData.totalBalance || walletData.amount || 0)
+            : '₺0,00'
+        : 'Giriş Yapın',
       icon: '💰',
       action: isAuthenticated ? 'Cüzdanı Aç' : 'Giriş Yap',
       color: 'from-blue-600 to-blue-400',

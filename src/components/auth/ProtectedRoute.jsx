@@ -61,25 +61,21 @@ const ProtectedRoute = ({ children }) => {
 
   const checkAuthentication = async () => {
     try {
-      console.log('🔐 Authentication check started...');
-      
       // Token varlığını kontrol et
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       
       if (!token) {
-        console.log('❌ No token found');
+        console.log('ProtectedRoute: No token found');
         setIsAuthenticated(false);
         setIsLoading(false);
         return;
       }
-
-      console.log('✅ Token found:', token.substring(0, 10) + '...');
       
       // AuthService'den authentication durumunu kontrol et
       const authStatus = AuthService.isAuthenticated();
       
       if (!authStatus) {
-        console.log('❌ AuthService authentication failed');
+        console.log('ProtectedRoute: AuthService authentication failed');
         // Token'ları temizle
         localStorage.removeItem('token');
         localStorage.removeItem('accessToken');
@@ -88,12 +84,12 @@ const ProtectedRoute = ({ children }) => {
         return;
       }
 
-      console.log('✅ User is authenticated');
+      console.log('ProtectedRoute: User is authenticated');
       setIsAuthenticated(true);
       setIsLoading(false);
       
     } catch (error) {
-      console.error('❌ Authentication check error:', error);
+      console.error('ProtectedRoute authentication check error:', error);
       setIsAuthenticated(false);
       setIsLoading(false);
     }

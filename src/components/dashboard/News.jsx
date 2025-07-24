@@ -39,14 +39,14 @@ const normalizeImageUrl = (imageUrl, newsId) => {
 };
 
 // Yardımcı fonksiyonlar
-function isYouTubeUrl(url) {
+const isYouTubeUrl = (url) => {
   return /youtube\.com\/watch\?v=|youtu\.be\//.test(url);
-}
+};
 
-function getYouTubeEmbedUrl(url) {
+const getYouTubeEmbedUrl = (url) => {
   const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
   return match ? `https://www.youtube.com/embed/${match[1]}` : url;
-}
+};
 
 const News = () => {
   const navigate = useNavigate();

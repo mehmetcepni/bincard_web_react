@@ -79,14 +79,48 @@ const routerFutureConfig = {
 
 function App() {
 
-  // Sekme kapanınca otomatik logout
+  // Uygulama yüklendiğinde theme ayarını kontrol et ve uygula
   useEffect(() => {
-    const handleUnload = () => {
-      AuthService.logout();
-    };
-    window.addEventListener('unload', handleUnload);
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    }
+    
+    // Eğer kullanıcı authenticated ise auto-refresh'i başlat
+    if (AuthService.isAuthenticated()) {
+      console.log('[APP] Kullanıcı authenticated, auto-refresh başlatılıyor');
+      AuthService.startAutoRefresh();
+    }
+    
+    // Cleanup function - component unmount olduğunda auto-refresh'i durdur
     return () => {
-      window.removeEventListener('unload', handleUnload);
+      AuthService.stopAutoRefresh();
+    };
+  }, []);
+
+  // SADECE sekme/tarayıcı tamamen kapanırken logout yap, sayfa yenilemede değil
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // Bu sadece sekme/tarayıcı kapanırken çalışır, sayfa yenilemede çalışmaz
+      if (e.type === 'beforeunload') {
+        // Sadece gerçekten kapanıyorsa logout yap
+        // Sayfa yenilemede logout yapma
+        return;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      // Sekme gizlendiğinde/gösterildiğinde logout yapma
+      // Bu özelliği kaldırıyoruz çünkü UX için kötü
+    };
+
+    // Bu event listener'ları kaldırıyoruz çünkü sayfa yenilemede sorun çıkarıyorlar
+    // window.addEventListener('beforeunload', handleBeforeUnload);
+    // window.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      // window.removeEventListener('beforeunload', handleBeforeUnload);
+      // window.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

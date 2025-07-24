@@ -33,6 +33,18 @@ const Settings = () => {
   // Avatar modal state
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   
+  // Token info state
+  const [tokenInfo, setTokenInfo] = useState(null);
+  
+  // Profile edit states
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileData, setProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    email: ''
+  });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  
   // Notification detail modal states
   const [showNotificationDetailModal, setShowNotificationDetailModal] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -119,6 +131,31 @@ const Settings = () => {
       });
   };
 
+  // Bildirim silme
+  const handleDeleteNotification = (notificationId, e) => {
+    e.stopPropagation(); // Modal açılmasını engelle
+    
+    if (window.confirm('Bu bildirimi silmek istediğinizden emin misiniz?')) {
+      NotificationService.deleteNotification(notificationId)
+        .then(() => {
+          // Bildirim listesinden kaldır
+          setNotifications(prev => 
+            prev.filter(notif => notif.id !== notificationId)
+          );
+          toast.success('Bildirim başarıyla silindi', {
+            position: 'top-center',
+            autoClose: 2000
+          });
+        })
+        .catch(err => {
+          console.error('Bildirim silinirken hata oluştu:', err);
+          toast.error('Bildirim silinemedi', {
+            position: 'top-center'
+          });
+        });
+    }
+  };
+
   // Filtre değiştir
   const changeNotificationType = (type) => {
     setNotificationType(type);
@@ -144,15 +181,22 @@ const Settings = () => {
   // Avatar değiştirme işlemlerini yönetir
   const handleAvatarClick = () => {
     setShowAvatarModal(true);
-    toast.info("Avatar değiştirme özelliği yakında aktif olacaktır!", {
-      position: "top-center",
-      autoClose: 3000
-    });
   };
 
   useEffect(() => {
     const checkAuth = async () => {
+      // İlk olarak localStorage'da token olup olmadığını kontrol et
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      
+      if (!token) {
+        console.warn('Token bulunamadı, kullanıcı oturum açmamış');
+        setIsAuthenticated(false);
+        return;
+      }
+      
+      // Token varsa AuthService ile kontrol et
       const authStatus = AuthService.isAuthenticated();
+      console.log('Auth status:', authStatus);
       setIsAuthenticated(authStatus);
       
       if (authStatus) {
@@ -163,17 +207,46 @@ const Settings = () => {
             if (profileData) {
               console.log('API\'den profil bilgisi alındı:', profileData);
               setUser(profileData);
+              
+              // Profil edit verilerini de set et
+              setProfileData({
+                firstName: profileData.firstName || '',
+                lastName: profileData.lastName || '',
+                email: profileData.email || ''
+              });
+              
+              // Profil bilgilerini localStorage'a kaydet
+              localStorage.setItem('lastKnownProfile', JSON.stringify(profileData));
               return; // API'den veri alındıysa fonksiyondan çık
             }
           } catch (apiError) {
             console.warn('API\'den profil bilgisi alınamadı, localStorage kullanılacak:', apiError);
+            
+            // API hatası varsa token geçersiz olabilir, kontrol et
+            if (apiError.response?.status === 401 || apiError.response?.status === 403) {
+              console.warn('Token geçersiz görünüyor, logout yapılıyor...');
+              localStorage.removeItem('accessToken');
+              localStorage.removeItem('token');
+              localStorage.removeItem('refreshToken');
+              setIsAuthenticated(false);
+              setUser(null);
+              return;
+            }
           }
           
           // API'den alınamazsa localStorage'dan oku
           const savedProfile = localStorage.getItem('lastKnownProfile');
           if (savedProfile) {
             console.log('localStorage\'dan profil bilgisi alındı');
-            setUser(JSON.parse(savedProfile));
+            const parsedProfile = JSON.parse(savedProfile);
+            setUser(parsedProfile);
+            
+            // Profil edit verilerini de set et
+            setProfileData({
+              firstName: parsedProfile.firstName || '',
+              lastName: parsedProfile.lastName || '',
+              email: parsedProfile.email || ''
+            });
           } else {
             console.warn('Profil bilgisi localStorage\'da bulunamadı');
             toast.warning('Profil bilgileri yüklenemedi. Lütfen sayfayı yenileyin veya tekrar giriş yapın.', {
@@ -184,6 +257,13 @@ const Settings = () => {
           console.error('Profil bilgisi alınamadı:', error);
           toast.error('Profil bilgileri alınamadı: ' + error.message);
         }
+      } else {
+        // Token varsa ama AuthService.isAuthenticated false dönüyorsa
+        console.warn('Token var ama geçersiz, temizleniyor...');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        setUser(null);
       }
     };
 
@@ -230,6 +310,24 @@ const Settings = () => {
         });
     }
   }, [page, notificationType, activeSubTab]);
+
+  // Token bilgilerini güncelleyen useEffect
+  useEffect(() => {
+    if (activeSubTab === 'settings' && isAuthenticated) {
+      const updateTokenInfo = () => {
+        const info = getTokenInfo();
+        setTokenInfo(info);
+      };
+      
+      // İlk güncelleme
+      updateTokenInfo();
+      
+      // Her 30 saniyede bir güncelle
+      const interval = setInterval(updateTokenInfo, 30 * 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [activeSubTab, isAuthenticated]);
 
   const saveSettings = () => {
     localStorage.setItem('userSettings', JSON.stringify(settings));
@@ -284,6 +382,117 @@ const Settings = () => {
     });
   };
 
+  // Profil düzenleme fonksiyonları
+  const handleProfileEdit = () => {
+    setIsEditingProfile(true);
+  };
+
+  const handleProfileCancel = () => {
+    setIsEditingProfile(false);
+    // Orijinal verilere geri dön
+    setProfileData({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email || ''
+    });
+  };
+
+  const handleProfileInputChange = (field, value) => {
+    setProfileData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleProfileSave = async () => {
+    // Veri doğrulama
+    if (!profileData.firstName.trim() || !profileData.lastName.trim()) {
+      toast.error('Ad ve soyad alanları boş bırakılamaz!', {
+        position: 'top-center',
+        autoClose: 3000
+      });
+      return;
+    }
+
+    // Email doğrulama (varsa)
+    if (profileData.email && profileData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(profileData.email.trim())) {
+        toast.error('Geçerli bir e-posta adresi girin!', {
+          position: 'top-center',
+          autoClose: 3000
+        });
+        return;
+      }
+    }
+
+    setIsSavingProfile(true);
+
+    try {
+      console.log('[PROFILE_SAVE] Profil güncelleniyor:', profileData);
+      console.log('[PROFILE_SAVE] Kullanıcı mevcut bilgileri:', user);
+
+      const result = await AuthService.updateProfile({
+        firstName: profileData.firstName.trim(),
+        lastName: profileData.lastName.trim(),
+        email: profileData.email.trim() || null
+      });
+
+      console.log('[PROFILE_SAVE] Backend response result:', result);
+
+      if (result && result.success !== false) {
+        // Kullanıcı verilerini güncelle
+        const updatedUser = {
+          ...user,
+          firstName: profileData.firstName.trim(),
+          lastName: profileData.lastName.trim(),
+          email: profileData.email.trim() || user.email
+        };
+
+        console.log('[PROFILE_SAVE] Güncellenmiş kullanıcı bilgileri:', updatedUser);
+        setUser(updatedUser);
+        localStorage.setItem('lastKnownProfile', JSON.stringify(updatedUser));
+
+        setIsEditingProfile(false);
+
+        toast.success(result.message || 'Profil bilgileriniz başarıyla güncellendi!', {
+          position: 'top-center',
+          autoClose: 3000
+        });
+
+        // API'den güncel profil bilgilerini çek
+        try {
+          console.log('[PROFILE_SAVE] API\'den güncel profil bilgileri çekiliyor...');
+          const refreshedProfile = await AuthService.getProfile();
+          console.log('[PROFILE_SAVE] API\'den gelen güncel profil:', refreshedProfile);
+          
+          if (refreshedProfile) {
+            setUser(refreshedProfile);
+            setProfileData({
+              firstName: refreshedProfile.firstName || '',
+              lastName: refreshedProfile.lastName || '',
+              email: refreshedProfile.email || ''
+            });
+            console.log('[PROFILE_SAVE] State güncellendi');
+            localStorage.setItem('lastKnownProfile', JSON.stringify(refreshedProfile));
+          }
+        } catch (refreshError) {
+          console.warn('[PROFILE_SAVE] Profil yenilenemedi:', refreshError);
+        }
+      } else {
+        throw new Error(result.message || 'Güncelleme başarısız oldu');
+      }
+    } catch (error) {
+      console.error('[PROFILE_SAVE] Profil güncellenemedi:', error);
+      toast.error(error.message || 'Profil güncellenirken bir hata oluştu!', {
+        position: 'top-center',
+        autoClose: 5000
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   const clearCache = () => {
     // Belirli cache verilerini temizle (kullanıcı verilerini koru)
     const keysToRemove = ['newsCache', 'paymentPointsCache', 'tempData'];
@@ -324,6 +533,53 @@ const Settings = () => {
       position: 'top-center',
       autoClose: 2000
     });
+  };
+
+  // Token yönetimi fonksiyonları
+  const handleManualRefresh = async () => {
+    try {
+      toast.info('Token yenileniyor...', {
+        position: 'top-center',
+        autoClose: 2000
+      });
+      
+      const result = await AuthService.manualRefreshToken();
+      
+      if (result.success) {
+        // Token bilgilerini güncelle
+        const updatedTokenInfo = getTokenInfo();
+        setTokenInfo(updatedTokenInfo);
+        
+        toast.success('Token başarıyla yenilendi!', {
+          position: 'top-center',
+          autoClose: 3000
+        });
+      } else {
+        toast.error(result.message || 'Token yenilenemedi', {
+          position: 'top-center',
+          autoClose: 3000
+        });
+      }
+    } catch (error) {
+      toast.error('Token yenileme hatası: ' + error.message, {
+        position: 'top-center',
+        autoClose: 3000
+      });
+    }
+  };
+
+  const getTokenInfo = () => {
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    if (!token) return null;
+    
+    const timeToExpiry = AuthService.getTokenTimeToExpiry(token);
+    const expirationTime = AuthService.getTokenExpirationTime(token);
+    
+    return {
+      timeToExpiry,
+      expirationTime: expirationTime ? new Date(expirationTime).toLocaleString('tr-TR') : null,
+      hasRefreshToken: !!localStorage.getItem('refreshToken')
+    };
   };
 
   if (!isAuthenticated) {
@@ -387,28 +643,85 @@ const Settings = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ad</label>
                     <input
                       type="text"
-                      value={user.firstName || ''}
-                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      readOnly
+                      value={isEditingProfile ? profileData.firstName : (user.firstName || '')}
+                      onChange={(e) => isEditingProfile && handleProfileInputChange('firstName', e.target.value)}
+                      className={`w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        isEditingProfile ? 'bg-white dark:bg-gray-700' : 'bg-gray-100 dark:bg-gray-600'
+                      }`}
+                      readOnly={!isEditingProfile}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Soyad</label>
                     <input
                       type="text"
-                      value={user.lastName || ''}
-                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      readOnly
+                      value={isEditingProfile ? profileData.lastName : (user.lastName || '')}
+                      onChange={(e) => isEditingProfile && handleProfileInputChange('lastName', e.target.value)}
+                      className={`w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        isEditingProfile ? 'bg-white dark:bg-gray-700' : 'bg-gray-100 dark:bg-gray-600'
+                      }`}
+                      readOnly={!isEditingProfile}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">E-posta</label>
                     <input
                       type="email"
-                      value={user.email || ''}
-                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      readOnly
+                      value={isEditingProfile ? profileData.email : (user.email || '')}
+                      onChange={(e) => isEditingProfile && handleProfileInputChange('email', e.target.value)}
+                      className={`w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        isEditingProfile ? 'bg-white dark:bg-gray-700' : 'bg-gray-100 dark:bg-gray-600'
+                      }`}
+                      readOnly={!isEditingProfile}
+                      placeholder={isEditingProfile ? "E-posta adresinizi girin" : "E-posta belirtilmemiş"}
                     />
+                  </div>
+                  
+                  {/* Düzenleme Butonları */}
+                  <div className="flex gap-3 mt-4">
+                    {!isEditingProfile ? (
+                      <button
+                        onClick={handleProfileEdit}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Düzenle
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleProfileSave}
+                          disabled={isSavingProfile}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSavingProfile ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Kaydediliyor...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                              Kaydet
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={handleProfileCancel}
+                          disabled={isSavingProfile}
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          İptal
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -569,27 +882,41 @@ const Settings = () => {
                           </span>
                         </div>
                         <p className="text-gray-600 dark:text-gray-300 mt-1">{notif.message}</p>
-                        <div className="mt-2 flex justify-end">
-                          {!notif.read && (
-                            <button 
-                              onClick={() => markAsRead(notif.id)}
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                            >
-                              Okundu İşaretle
-                            </button>
-                          )}
-                          {notif.targetUrl && (
-                            <a 
-                              href={notif.targetUrl} 
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 ml-4"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              İlgili Sayfaya Git →
-                            </a>
-                          )}
-                        </div>
                       </div>
+                      
+                      {/* Silme butonu */}
+                      <button 
+                        onClick={(e) => handleDeleteNotification(notif.id, e)}
+                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors p-1"
+                        title="Bildirimi sil"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                    
+                    <div className="mt-2 flex justify-end space-x-2">
+                      {!notif.read && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsRead(notif.id);
+                          }}
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        >
+                          Okundu İşaretle
+                        </button>
+                      )}
+                      {notif.targetUrl && (
+                        <a 
+                          href={notif.targetUrl} 
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          İlgili Sayfaya Git →
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -778,6 +1105,60 @@ const Settings = () => {
                   <option value="EUR">EUR (€)</option>
                 </select>
               </div>
+              
+                {/* Token Yönetimi */}
+                <div className="border-t dark:border-gray-700 pt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center">
+                    🔐 Token Yönetimi
+                  </h3>
+                  {tokenInfo ? (
+                    <div className="space-y-3">
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Expire süresi:</span>
+                            <span className={`ml-2 ${
+                              tokenInfo.timeToExpiry <= 5 ? 'text-red-600 dark:text-red-400 font-bold' : 
+                              tokenInfo.timeToExpiry <= 15 ? 'text-yellow-600 dark:text-yellow-400' : 
+                              'text-green-600 dark:text-green-400'
+                            }`}>
+                              {tokenInfo.timeToExpiry > 0 ? `${tokenInfo.timeToExpiry} dakika` : 'Süresi dolmuş'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Expire zamanı:</span>
+                            <span className="ml-2 text-gray-600 dark:text-gray-400 text-xs">
+                              {tokenInfo.expirationTime}
+                            </span>
+                          </div>
+                          <div className="md:col-span-2">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Refresh Token:</span>
+                            <span className={`ml-2 ${tokenInfo.hasRefreshToken ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {tokenInfo.hasRefreshToken ? '✅ Mevcut' : '❌ Yok'}
+                            </span>
+                          </div>
+                          <div className="md:col-span-2">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Auto-Refresh:</span>
+                            <span className="ml-2 text-blue-600 dark:text-blue-400">
+                              {tokenInfo.timeToExpiry <= 5 ? '🔄 Yakında çalışacak' : '⏳ Standby'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleManualRefresh}
+                        className="w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                      >
+                        🔄 Token'ı Manuel Yenile
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <span className="text-gray-500 dark:text-gray-400">Token bilgisi bulunamadı</span>
+                    </div>
+                  )}
+                </div>
+              
               <div className="space-y-2">
                 <button
                   onClick={clearCache}
@@ -841,18 +1222,83 @@ const Settings = () => {
   // Avatar değiştirme modalı
   const AvatarChangeModal = () => {
     const [selectedAvatar, setSelectedAvatar] = useState(null);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [uploading, setUploading] = useState(false);
     
     const handleClose = () => {
       setShowAvatarModal(false);
+      setSelectedAvatar(null);
+      setSelectedFile(null);
     };
     
-    const handleSave = () => {
-      // Burada avatar güncelleme işlemi gerçekleşecek
-      toast.success("Avatar başarıyla güncellendi!", {
-        position: "top-center",
-        autoClose: 2000
-      });
-      setShowAvatarModal(false);
+    const handleFileChange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Dosya boyutu kontrolü (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('Dosya boyutu 5MB\'dan küçük olmalıdır!', {
+            position: 'top-center'
+          });
+          return;
+        }
+        
+        // Dosya tipi kontrolü
+        if (!file.type.startsWith('image/')) {
+          toast.error('Lütfen geçerli bir resim dosyası seçin!', {
+            position: 'top-center'
+          });
+          return;
+        }
+        
+        setSelectedFile(file);
+        console.log('Seçilen dosya:', file.name, file.size, file.type);
+      }
+    };
+    
+    const handleSave = async () => {
+      if (!selectedFile) {
+        toast.warning('Lütfen bir resim seçin!', {
+          position: 'top-center'
+        });
+        return;
+      }
+      
+      setUploading(true);
+      
+      try {
+        console.log('Profil fotoğrafı yükleniyor...');
+        
+        const result = await AuthService.updateProfilePhoto(selectedFile);
+        
+        console.log('Profil fotoğrafı güncelleme sonucu:', result);
+        
+        // Başarılı olursa kullanıcı bilgilerini güncelle
+        if (result) {
+          // Profil bilgilerini yeniden çek
+          try {
+            const updatedProfile = await AuthService.getProfile();
+            setUser(updatedProfile);
+            localStorage.setItem('lastKnownProfile', JSON.stringify(updatedProfile));
+          } catch (profileError) {
+            console.warn('Profil bilgileri güncellenemedi:', profileError);
+          }
+          
+          toast.success('Profil fotoğrafı başarıyla güncellendi!', {
+            position: 'top-center',
+            autoClose: 3000
+          });
+          
+          handleClose();
+        }
+      } catch (error) {
+        console.error('Profil fotoğrafı güncelleme hatası:', error);
+        toast.error(error.message || 'Profil fotoğrafı güncellenemedi!', {
+          position: 'top-center',
+          autoClose: 5000
+        });
+      } finally {
+        setUploading(false);
+      }
     };
     
     return (
@@ -873,44 +1319,59 @@ const Settings = () => {
             </div>
             
             <div className="mb-6">
-              <p className="text-gray-700 dark:text-gray-300 mb-4">Yeni bir avatar seçin veya yükleyin:</p>
-              
-              <div className="grid grid-cols-4 gap-3 mb-4">
-                {['blue', 'green', 'purple', 'red'].map(color => (
-                  <button 
-                    key={color}
-                    className={`rounded-full w-12 h-12 transition-all ${selectedAvatar === color ? 'ring-4 ring-blue-500' : ''}`}
-                    style={{ background: `linear-gradient(to right, ${color}, ${color === 'blue' ? 'purple' : color === 'green' ? 'teal' : color === 'purple' ? 'pink' : 'orange'})` }}
-                    onClick={() => setSelectedAvatar(color)}
-                  />
-                ))}
-              </div>
+              <p className="text-gray-700 dark:text-gray-300 mb-4">Yeni bir profil fotoğrafı yükleyin:</p>
               
               <div className="mb-4">
                 <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Resim yükle
+                  📷 Resim Dosyası Seç
                 </label>
                 <input 
                   type="file" 
                   accept="image/*"
-                  className="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400"
+                  onChange={handleFileChange}
+                  className="block w-full text-sm text-gray-500 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG (max. 2MB)</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">PNG, JPG, JPEG (max. 5MB)</p>
+                
+                {selectedFile && (
+                  <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="flex items-center">
+                      <span className="text-green-600 dark:text-green-400 mr-2">✓</span>
+                      <div>
+                        <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                          Seçilen dosya: {selectedFile.name}
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          Boyut: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
             <div className="flex justify-end space-x-2">
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                disabled={uploading}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 İptal
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={uploading || !selectedFile}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Kaydet
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Yükleniyor...
+                  </>
+                ) : (
+                  '💾 Kaydet'
+                )}
               </button>
             </div>
           </div>
@@ -976,19 +1437,30 @@ const Settings = () => {
                 </div>
                 
                 <div className="border-t dark:border-gray-700 pt-4 flex justify-between items-center">
-                  {selectedNotification.targetUrl && (
-                    <a 
-                      href={selectedNotification.targetUrl} 
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center"
+                  <div className="flex space-x-2">
+                    {selectedNotification.targetUrl && (
+                      <a 
+                        href={selectedNotification.targetUrl} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center"
+                      >
+                        İlgili Sayfaya Git <span className="ml-1">→</span>
+                      </a>
+                    )}
+                    <button 
+                      onClick={() => {
+                        handleDeleteNotification(selectedNotification.id, { stopPropagation: () => {} });
+                        closeModal();
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center"
                     >
-                      İlgili Sayfaya Git <span className="ml-1">→</span>
-                    </a>
-                  )}
+                      🗑️ Sil
+                    </button>
+                  </div>
                   <button 
                     onClick={closeModal}
-                    className="ml-auto bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                    className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 px-4 rounded-lg font-medium transition-colors"
                   >
                     Kapat
                   </button>
