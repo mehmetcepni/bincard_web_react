@@ -1022,3 +1022,174 @@ h3 {
     padding: 0.125rem 0.5rem;
   }
 }
+
+/* Card Pricing Styles */
+.pricing-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0,91,172,0.05), rgba(0,91,172,0.02));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.pricing-card:hover::before {
+  opacity: 1;
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+  border-color: rgba(0,91,172,0.1);
+}
+
+.pricing-card-icon {
+  transition: all 0.3s ease;
+}
+
+.pricing-card:hover .pricing-card-icon {
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark mode pricing adjustments */
+.dark .pricing-card {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .pricing-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.4);
+}
+
+.dark .pricing-card::before {
+  background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+}
+
+/* Pricing responsive design */
+@media (max-width: 1024px) {
+  .pricing-card {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .pricing-card:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 640px) {
+  .pricing-card {
+    margin-bottom: 0.75rem;
+  }
+  
+  .pricing-card-icon {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .pricing-card:hover {
+    transform: translateY(-1px);
+  }
+}
+
+/* Subtle animation for pricing cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pricing-card {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.pricing-card:nth-child(1) { animation-delay: 0.05s; }
+.pricing-card:nth-child(2) { animation-delay: 0.1s; }
+.pricing-card:nth-child(3) { animation-delay: 0.15s; }
+.pricing-card:nth-child(4) { animation-delay: 0.2s; }
+
+/* News Modal Styles */
+.news-modal {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.news-modal-content {
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* News content prose styling */
+.prose {
+  max-width: none;
+}
+
+.prose p {
+  margin-bottom: 1rem;
+  line-height: 1.7;
+}
+
+.prose h1, .prose h2, .prose h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.prose ul, .prose ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.prose li {
+  margin-bottom: 0.5rem;
+}
+
+.prose blockquote {
+  border-left: 4px solid var(--primary-blue);
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+/* Dark mode prose adjustments */
+.dark .prose {
+  color: #d1d5db;
+}
+
+.dark .prose h1, .dark .prose h2, .dark .prose h3 {
+  color: #f9fafb;
+}
+
+.dark .prose blockquote {
+  color: #9ca3af;
+  border-left-color: #2c7bc7;
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import NewsService from '../../services/news.service';
 import AuthService from '../../services/auth.service';
 import { toast } from 'react-toastify';
@@ -50,6 +50,7 @@ const getYouTubeEmbedUrl = (url) => {
 
 const News = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [campaigns, setCampaigns] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,16 @@ const News = () => {
   const [isOnline, setIsOnline] = useState(true); // Backend bağlantı durumu
   const [selectedNews, setSelectedNews] = useState(null); // Seçilen haber detayı
   const [isModalOpen, setIsModalOpen] = useState(false); // Modal açık/kapalı durumu
+
+  // URL parametresinden kategori oku
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setActiveCategory(categoryParam);
+      console.log('📊 URL\'den kategori parametresi okundu:', categoryParam);
+    }
+  }, [location.search]);
 
   // Pagination states - removed for single page view
   // const [currentPage, setCurrentPage] = useState(1);
