@@ -584,19 +584,23 @@ const Settings = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 min-h-[calc(100vh-56px)]">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center">
-            <div className="text-6xl mb-4">🔒</div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Giriş Yapmanız Gerekiyor</h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full">
+          <div className="card p-8 text-center">
+            <div className="w-16 h-16 bg-[#005bac] rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Giriş Yapmanız Gerekiyor</h2>
+            <p className="text-gray-600 mb-8">
               Ayarları görüntülemek ve düzenlemek için lütfen giriş yapın.
             </p>
             <button
               onClick={() => AuthService.showLoginConfirmModal('Ayarları görüntüleme işlemini')}
-              className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              className="btn-primary w-full"
             >
-              🔑 Giriş Yap
+              Giriş Yap
             </button>
           </div>
         </div>
@@ -609,8 +613,8 @@ const Settings = () => {
     return (
       <div className="space-y-6">
         {/* Kullanıcı Bilgileri */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+        <div className="card p-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
             👤 Hesap Bilgileri
           </h2>
           
@@ -624,53 +628,54 @@ const Settings = () => {
                   onClick={() => handleAvatarClick()}
                 />
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                  <h3 className="text-xl font-semibold text-gray-900">
                     {user.firstName} {user.lastName}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300">{user.email}</p>
+                  <p className="text-gray-600">{user.email}</p>
                   <button 
                     onClick={handleAvatarClick}
-                    className="mt-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                    className="mt-3 text-[#005bac] hover:text-[#004690] font-medium transition-colors"
+                  >
                     📷 Profil Fotoğrafını Değiştir
                   </button>
                 </div>
               </div>
 
               {/* Detaylı Bilgiler */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ad</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ad</label>
                     <input
                       type="text"
                       value={isEditingProfile ? profileData.firstName : (user.firstName || '')}
                       onChange={(e) => isEditingProfile && handleProfileInputChange('firstName', e.target.value)}
-                      className={`w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        isEditingProfile ? 'bg-white dark:bg-gray-700' : 'bg-gray-100 dark:bg-gray-600'
+                      className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus-ring text-base ${
+                        isEditingProfile ? 'bg-white' : 'bg-gray-50'
                       }`}
                       readOnly={!isEditingProfile}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Soyad</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Soyad</label>
                     <input
                       type="text"
                       value={isEditingProfile ? profileData.lastName : (user.lastName || '')}
                       onChange={(e) => isEditingProfile && handleProfileInputChange('lastName', e.target.value)}
-                      className={`w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        isEditingProfile ? 'bg-white dark:bg-gray-700' : 'bg-gray-100 dark:bg-gray-600'
+                      className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus-ring text-base ${
+                        isEditingProfile ? 'bg-white' : 'bg-gray-50'
                       }`}
                       readOnly={!isEditingProfile}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">E-posta</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
                     <input
                       type="email"
                       value={isEditingProfile ? profileData.email : (user.email || '')}
                       onChange={(e) => isEditingProfile && handleProfileInputChange('email', e.target.value)}
-                      className={`w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        isEditingProfile ? 'bg-white dark:bg-gray-700' : 'bg-gray-100 dark:bg-gray-600'
+                      className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus-ring text-base ${
+                        isEditingProfile ? 'bg-white' : 'bg-gray-50'
                       }`}
                       readOnly={!isEditingProfile}
                       placeholder={isEditingProfile ? "E-posta adresinizi girin" : "E-posta belirtilmemiş"}
@@ -678,11 +683,11 @@ const Settings = () => {
                   </div>
                   
                   {/* Düzenleme Butonları */}
-                  <div className="flex gap-3 mt-4">
+                  <div className="flex gap-3 mt-6">
                     {!isEditingProfile ? (
                       <button
                         onClick={handleProfileEdit}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="btn-primary flex items-center gap-2"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -694,11 +699,11 @@ const Settings = () => {
                         <button
                           onClick={handleProfileSave}
                           disabled={isSavingProfile}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSavingProfile ? (
                             <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              <div className="spinner"></div>
                               Kaydediliyor...
                             </>
                           ) : (
@@ -713,7 +718,7 @@ const Settings = () => {
                         <button
                           onClick={handleProfileCancel}
                           disabled={isSavingProfile}
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -726,30 +731,30 @@ const Settings = () => {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telefon</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
                     <input
                       type="tel"
                       value={user.phoneNumber || ''}
                       placeholder="Telefon numarası belirtilmemiş"
-                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-base"
                       readOnly
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Üyelik Tarihi</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Üyelik Tarihi</label>
                     <input
                       type="text"
                       value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
-                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-base"
                       readOnly
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kullanıcı ID</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Kullanıcı ID</label>
                     <input
                       type="text"
                       value={user.id || 'Bilinmiyor'}
-                      className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-base"
                       readOnly
                     />
                   </div>
@@ -757,22 +762,24 @@ const Settings = () => {
               </div>
 
               {/* Güvenlik Seçenekleri */}
-              <div className="border-t dark:border-gray-700 pt-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">🔐 Güvenlik</h3>
-                <div className="space-y-3">
-                  <button className="w-full md:w-auto bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">🔐 Güvenlik</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button className="btn-outline flex items-center justify-center gap-2">
                     🔑 Şifreyi Değiştir
                   </button>
-                  <button className="w-full md:w-auto bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700 text-white py-2 px-4 rounded-lg font-medium transition-colors ml-0 md:ml-3">
+                  <button className="btn-outline flex items-center justify-center gap-2">
                     📱 İki Faktörlü Doğrulama
                   </button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-4">👤</div>
-              <p className="text-gray-600 dark:text-gray-400">Profil bilgileri yüklenemedi.</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">👤</span>
+              </div>
+              <p className="text-gray-600">Profil bilgileri yüklenemedi.</p>
             </div>
           )}
         </div>
@@ -1474,47 +1481,68 @@ const Settings = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 min-h-[calc(100vh-56px)]">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {showAvatarModal && <AvatarChangeModal />}
       {showNotificationDetailModal && <NotificationDetailModal />}
-      <div className="max-w-4xl mx-auto">
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-700 dark:to-blue-700 text-white rounded-xl shadow-md p-6 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">⚙️ Ayarlar</h1>
-          <p className="opacity-90">
-            Hesap bilgilerinizi ve uygulama ayarlarınızı buradan yönetebilirsiniz.
-          </p>
+        <div className="card p-6 mb-8 bg-gradient-to-r from-[#005bac] to-[#004690] text-white">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold mb-2 fade-in">⚙️ Ayarlar</h1>
+              <p className="text-blue-100 fade-in">
+                Hesap bilgilerinizi ve uygulama ayarlarınızı buradan yönetebilirsiniz.
+              </p>
+            </div>
+            {/* Tema değiştirme butonu */}
+            <button
+              onClick={() => handleThemeChange(settings.theme === 'light' ? 'dark' : 'light')}
+              className="p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors duration-200"
+              title={settings.theme === 'light' ? 'Koyu moda geç' : 'Açık moda geç'}
+            >
+              {settings.theme === 'light' ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md mb-6">
+        <div className="card mb-6 overflow-hidden">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setActiveSubTab('profile')}
-              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+              className={`flex-1 py-4 px-6 text-center font-medium transition-all duration-200 ${
                 activeSubTab === 'profile'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-gray-700'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  ? 'text-[#005bac] border-b-2 border-[#005bac] bg-blue-50 dark:bg-blue-900/30'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-[#005bac] hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               👤 Profilim
             </button>
             <button
               onClick={() => setActiveSubTab('notifications')}
-              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+              className={`flex-1 py-4 px-6 text-center font-medium transition-all duration-200 ${
                 activeSubTab === 'notifications'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-gray-700'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  ? 'text-[#005bac] border-b-2 border-[#005bac] bg-blue-50 dark:bg-blue-900/30'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-[#005bac] hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               🔔 Bildirimlerim
             </button>
             <button
               onClick={() => setActiveSubTab('settings')}
-              className={`flex-1 py-4 px-6 text-center font-medium transition-colors ${
+              className={`flex-1 py-4 px-6 text-center font-medium transition-all duration-200 ${
                 activeSubTab === 'settings'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-gray-700'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  ? 'text-[#005bac] border-b-2 border-[#005bac] bg-blue-50 dark:bg-blue-900/30'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-[#005bac] hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
               ⚙️ Uygulama Ayarları
@@ -1523,11 +1551,13 @@ const Settings = () => {
         </div>
 
         {/* Tab Content */}
-        {activeSubTab === 'profile' 
-          ? renderProfileTab() 
-          : activeSubTab === 'notifications'
-            ? renderNotificationsTab()
-            : renderSettingsTab()}
+        <div className="slide-up">
+          {activeSubTab === 'profile' 
+            ? renderProfileTab() 
+            : activeSubTab === 'notifications'
+              ? renderNotificationsTab()
+              : renderSettingsTab()}
+        </div>
       </div>
     </div>
   );

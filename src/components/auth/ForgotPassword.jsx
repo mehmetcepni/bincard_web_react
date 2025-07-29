@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import AuthService from '../../services/auth.service';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import bincardLogo from '../../assets/bincard-logo.jpg';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -84,9 +85,18 @@ const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-300 p-4">
-      <ToastContainer />
       <div className="w-full max-w-md bg-white/90 rounded-2xl shadow-2xl p-8">
-        <h1 className="text-3xl font-bold text-center mb-6 text-blue-700 tracking-tight">Şifre Sıfırlama</h1>
+        {/* Logo */}
+        <div className="text-center mb-6">
+          <div className="mx-auto w-20 h-20 rounded-3xl overflow-hidden mb-4 shadow-lg">
+            <img 
+              src={bincardLogo} 
+              alt="BinCard Logo" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <h1 className="text-3xl font-bold text-blue-700 tracking-tight">Şifre Sıfırlama</h1>
+        </div>
         <p className="text-center text-gray-600 mb-4">Şifrenizi sıfırlamak için telefon numaranızı girin. Size bir doğrulama kodu göndereceğiz.</p>
         {error && (
           <div className="mb-4 text-red-600 bg-red-100 border border-red-200 rounded px-4 py-2 text-sm animate-shake">{error}</div>

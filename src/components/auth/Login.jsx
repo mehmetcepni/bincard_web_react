@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import AuthService from '../../services/auth.service';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { messaging, getToken } from '../../firebase';
+import bincardLogo from '../../assets/bincard-logo.jpg';
 
 const getDeviceInfo = () => 'Xiaomi Redmi Note 11 - Android 13';
 const getAppVersion = () => '1.4.2';
@@ -37,13 +38,10 @@ const Login = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Input validation - telefon numarası için sadece sayılar
     if (name === 'telephone') {
-      // Telefon numarası için sadece sayılar
       const numberOnlyValue = value.replace(/[^0-9]/g, '');
       setForm({ ...form, [name]: numberOnlyValue });
     } else {
-      // Diğer alanlar için normal işlem
       setForm({ ...form, [name]: value });
     }
   };
@@ -51,15 +49,15 @@ const Login = () => {
   const validate = () => {
     let err = '';
     if (!form.telephone) {
-      err = '📱 Lütfen telefon numaranızı girin';
+      err = 'Lütfen telefon numaranızı girin';
     } else if (!/^0[0-9]{10}$/.test(form.telephone)) {
-      err = '📱 Telefon numarası 0 ile başlamalı ve 11 haneli olmalı (örn: 05xxxxxxxxx)';
+      err = 'Telefon numarası 0 ile başlamalı ve 11 haneli olmalı (örn: 05xxxxxxxxx)';
     } else if (!/^[0-9]+$/.test(form.telephone)) {
-      err = '📱 Telefon numarası sadece sayılardan oluşmalı';
+      err = 'Telefon numarası sadece sayılardan oluşmalı';
     } else if (!form.password) {
-      err = '🔒 Lütfen şifrenizi girin';
+      err = 'Lütfen şifrenizi girin';
     } else if (form.password.length !== 6) {
-      err = '🔒 Şifre tam olarak 6 karakter olmalı';
+      err = 'Şifre tam olarak 6 karakter olmalı';
     }
     setError(err);
     return !err;
@@ -67,138 +65,102 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-      if (isSubmitting) return;
+    if (isSubmitting) return;
     if (!validate()) return;
-      setIsSubmitting(true);
-      setError('');
-      try {
+    
+    setIsSubmitting(true);
+    setError('');
+    
+    try {
       let telephone = form.telephone;
-        if (!telephone.startsWith('+90')) {
-          telephone = '+90' + telephone.replace(/^0/, '');
-        }
+      if (!telephone.startsWith('+90')) {
+        telephone = '+90' + telephone.replace(/^0/, '');
+      }
+      
       const response = await AuthService.login(telephone, form.password);
       
-      console.log('AuthService login response:', response);
-      
-        // Özel durumlar - Backend exception türlerine göre
-        if (
-          (response && response.message && response.message.includes('Yeni cihaz algılandı')) ||
-          (response && response.message && response.message.includes('Telefon numaranız doğrulanmamış'))
-        ) {
-          setShowVerify(true);
-          setPendingLogin({ telephone });
-          toast.info(`📱 ${response.message}`, {
-            position: 'top-center',
-            autoClose: 5000,
-          });
-          setIsSubmitting(false);
-          return;
-        } else if (response && response.success) {
-          // Backend'den gelen başarı mesajını göster
-          const successMessage = response.message || 'Giriş başarılı!';
-          toast.success(`✅ ${successMessage} Yönlendiriliyorsunuz...`, {
-            position: 'top-center',            autoClose: 2000,
-            onClose: () => navigate('/dashboard'),
-          });
-          // === FCM TOKEN ENTEGRASYONU ===
-          try {
-            // Sadece daha önce başarılı kayıt olmadıysa
-            if (localStorage.getItem('fcmTokenRegistered') !== 'true') {
-              if ('Notification' in window && messaging) {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                  // VAPID anahtarınızı buraya ekleyin
-                  const fcmToken = await getToken(messaging, { vapidKey: 'VAPID_KEYINIZ' });
-                  if (fcmToken) {
-                    const accessToken = localStorage.getItem('accessToken');
-                    const apiResponse = await fetch(`http://localhost:8080/v1/api/user/update-fcm-token?fcmToken=${encodeURIComponent(fcmToken)}`, {
-                      method: 'PATCH',
-                      headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                      }
-                    });
-                    const result = await apiResponse.json();
-                    if (result === true) {
-                      localStorage.setItem('fcmTokenRegistered', 'true');
-                    } else {
-                      localStorage.removeItem('fcmTokenRegistered');
+      if (
+        (response && response.message && response.message.includes('Yeni cihaz algılandı')) ||
+        (response && response.message && response.message.includes('Telefon numaranız doğrulanmamış'))
+      ) {
+        setShowVerify(true);
+        setPendingLogin({ telephone });
+        toast.info(response.message, {
+          position: 'top-center',
+          autoClose: 5000,
+        });
+        setIsSubmitting(false);
+        return;
+      } else if (response && response.success) {
+        const successMessage = response.message || 'Giriş başarılı!';
+        toast.success(`${successMessage} Yönlendiriliyorsunuz...`, {
+          position: 'top-center',
+          autoClose: 2000,
+        });
+        setTimeout(() => navigate('/dashboard'), 2000);
+        
+        // FCM Token entegrasyonu
+        try {
+          if (localStorage.getItem('fcmTokenRegistered') !== 'true') {
+            if ('Notification' in window && messaging) {
+              const permission = await Notification.requestPermission();
+              if (permission === 'granted') {
+                const fcmToken = await getToken(messaging, { vapidKey: 'VAPID_KEYINIZ' });
+                if (fcmToken) {
+                  const accessToken = localStorage.getItem('accessToken');
+                  const apiResponse = await fetch(`http://localhost:8080/v1/api/user/update-fcm-token?fcmToken=${encodeURIComponent(fcmToken)}`, {
+                    method: 'PATCH',
+                    headers: {
+                      'Authorization': `Bearer ${accessToken}`
                     }
+                  });
+                  const result = await apiResponse.json();
+                  if (result === true) {
+                    localStorage.setItem('fcmTokenRegistered', 'true');
                   }
                 }
               }
             }
-          } catch (fcmErr) {
-            localStorage.removeItem('fcmTokenRegistered');
           }
-          // === FCM TOKEN ENTEGRASYONU SONU ===
-        } else if (response && !response.success) {
-          // Backend'den gelen hata mesajını direkt göster
-          const errorMessage = response.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.';
-          throw new Error(errorMessage);
-        } else {
-          throw new Error(response?.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
+        } catch (fcmErr) {
+          localStorage.removeItem('fcmTokenRegistered');
         }
-      } catch (err) {
-        console.log('Login catch error:', err);
-        
-        // AuthService'den dönen hata objesini kontrol et
-        if (err && typeof err === 'object' && err.message) {
-          const errorMessage = `❌ ${err.message}`;
-          setError(errorMessage);
-          toast.error(errorMessage, {
-            position: 'top-center',
-            autoClose: 6000,
-          });
-          return;
-        }
-        
-        // Spesifik hata mesajları - Backend exception türlerine göre
-        let errorMessage = err.message || err;
-        
-        if (typeof errorMessage === 'string') {
-          if (errorMessage.includes('NotFoundUserException') || 
-              errorMessage.includes('kayıtlı kullanıcı bulunamadı')) {
-            errorMessage = '❌ Bu telefon numarasıyla kayıtlı kullanıcı bulunamadı. Lütfen önce kayıt olun.';
-          } else if (errorMessage.includes('IncorrectPasswordException') || 
-                     errorMessage.includes('şifre hatalı')) {
-            errorMessage = '❌ Girilen şifre hatalı. Lütfen şifrenizi kontrol edin.';
-          } else if (errorMessage.includes('UserDeletedException')) {
-            errorMessage = '❌ Bu hesap silinmiş durumda. Lütfen yeni hesap oluşturun.';
-          } else if (errorMessage.includes('UserNotActiveException')) {
-            errorMessage = '❌ Hesabınız aktif değil. Lütfen yönetici ile iletişime geçin.';
-          } else if (errorMessage.includes('UserRoleNotAssignedException')) {
-            errorMessage = '❌ Hesabınızda rol atanmamış. Lütfen yönetici ile iletişime geçin.';
-          } else if (errorMessage.includes('AdminNotApprovedException')) {
-            errorMessage = '❌ Hesabınız henüz onaylanmamış. Lütfen onay bekleyin.';
-          } else if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || 
-                     errorMessage.includes('telefon numarası veya şifre hatalı')) {
-            errorMessage = '❌ Telefon numarası veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.';
-          } else if (errorMessage.includes('telefon') || errorMessage.includes('phone')) {
-            errorMessage = '❌ Geçersiz telefon numarası formatı. Lütfen 05xxxxxxxxx şeklinde girin.';
-          } else if (errorMessage.includes('network') || errorMessage.includes('timeout') || 
-                     errorMessage.includes('bağlan')) {
-            errorMessage = '🌐 İnternet bağlantınızı kontrol edin ve tekrar deneyin.';
-          } else if (errorMessage.includes('server') || errorMessage.includes('500')) {
-            errorMessage = '🔧 Sunucu hatası. Lütfen birkaç dakika sonra tekrar deneyin.';
-          } else if (!errorMessage || errorMessage === 'undefined') {
-            errorMessage = '❌ Giriş yapılırken beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.';
-          }
-        }
-        
-        setError(errorMessage);
-        toast.error(errorMessage, {
-          position: 'top-center',
-          autoClose: 6000,
-        });
-      } finally {
-        setIsSubmitting(false);
+      } else {
+        const errorMessage = response?.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.';
+        throw new Error(errorMessage);
       }
+    } catch (err) {
+      let errorMessage = err.message || err;
+      
+      if (typeof errorMessage === 'string') {
+        if (errorMessage.includes('NotFoundUserException') || 
+            errorMessage.includes('kayıtlı kullanıcı bulunamadı')) {
+          errorMessage = 'Bu telefon numarasıyla kayıtlı kullanıcı bulunamadı. Lütfen önce kayıt olun.';
+        } else if (errorMessage.includes('IncorrectPasswordException') || 
+                   errorMessage.includes('şifre hatalı')) {
+          errorMessage = 'Girilen şifre hatalı. Lütfen şifrenizi kontrol edin.';
+        } else if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+          errorMessage = 'Telefon numarası veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.';
+        } else if (!errorMessage || errorMessage === 'undefined') {
+          errorMessage = 'Giriş yapılırken beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.';
+        }
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage, {
+        position: 'top-center',
+        autoClose: 6000,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleVerifySubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
+    
     try {
       const verifyResponse = await AuthService.phoneVerify({
         code: verifyCode,
@@ -207,36 +169,25 @@ const Login = () => {
         appVersion: getAppVersion(),
         platform: getPlatform(),
       });
+      
       if (verifyResponse && verifyResponse.success) {
         toast.success('Doğrulama başarılı! Yönlendiriliyorsunuz...', {
           position: 'top-center',
           autoClose: 2000,
-          onClose: () => navigate('/dashboard'),
         });
+        setTimeout(() => navigate('/dashboard'), 2000);
       } else {
-        if (verifyResponse?.message && verifyResponse.message.includes('Doğrulama kodu geçersiz')) {
-          setError('❌ Girilen SMS doğrulama kodu hatalı. Lütfen tekrar kontrol edin.');
-          toast.error('❌ Girilen SMS doğrulama kodu hatalı. Lütfen tekrar kontrol edin.', {
-            position: 'top-center',
-            autoClose: 6000,
-          });
-          return;
-        }
         throw new Error(verifyResponse?.message || 'Doğrulama başarısız oldu.');
       }
     } catch (err) {
-      // Spesifik SMS doğrulama hata mesajları
       let errorMessage = err.message;
       
-      if (err.message.includes('geçersiz') || err.message.includes('invalid') || 
-          err.message.includes('wrong') || err.message.includes('hatalı')) {
-        errorMessage = '❌ SMS doğrulama kodu hatalı. Lütfen kodu kontrol edin ve tekrar deneyin.';
+      if (err.message.includes('geçersiz') || err.message.includes('hatalı')) {
+        errorMessage = 'SMS doğrulama kodu hatalı. Lütfen kodu kontrol edin ve tekrar deneyin.';
       } else if (err.message.includes('süresi') || err.message.includes('expired')) {
-        errorMessage = '⏰ SMS doğrulama kodunun süresi dolmuş. Lütfen yeni kod isteyin.';
-      } else if (err.message.includes('limit') || err.message.includes('çok fazla')) {
-        errorMessage = '⚠️ Çok fazla hatalı deneme. Lütfen birkaç dakika bekleyin.';
+        errorMessage = 'SMS doğrulama kodunun süresi dolmuş. Lütfen yeni kod isteyin.';
       } else if (!errorMessage || errorMessage === 'undefined') {
-        errorMessage = '❌ SMS doğrulama sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+        errorMessage = 'SMS doğrulama sırasında bir hata oluştu. Lütfen tekrar deneyin.';
       }
       
       setError(errorMessage);
@@ -256,16 +207,11 @@ const Login = () => {
     setError('');
     
     try {
-      // Login durumu için özel resend fonksiyonu kullan
       const response = await AuthService.resendLoginSmsCode(pendingLogin.telephone);
       if (response && response.success) {
         toast.success('SMS kodu başarıyla tekrar gönderildi!', { 
           position: 'top-center', 
           autoClose: 3000 
-        });
-        toast.info('Yeni doğrulama kodunu telefonunuza gönderdik!', { 
-          position: 'top-center', 
-          autoClose: 5000 
         });
       } else {
         throw new Error(response?.message || 'SMS kodu gönderilemedi');
@@ -283,135 +229,224 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-300 p-4">
-      <ToastContainer />
-      <div className="w-full max-w-md bg-white/90 rounded-2xl shadow-2xl p-8">
-        <h1 className="text-3xl font-bold text-center mb-6 text-blue-700 tracking-tight">Giriş Yap</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <div className="mx-auto w-20 h-20 rounded-3xl overflow-hidden mb-6 shadow-lg">
+            <img 
+              src={bincardLogo} 
+              alt="BinCard Logo" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">BinCard'a Giriş Yap</h1>
+          <p className="text-gray-600 dark:text-gray-400">Hesabına giriş yaparak devam et</p>
+        </div>
+
+        {/* Error/Success Messages */}
         {error && (
-          <div className="mb-4 text-red-600 bg-red-100 border border-red-200 rounded px-4 py-2 text-sm animate-shake">
-            {error}
-          </div>
-        )}
-        {successMessage && (
-          <div className="mb-4 text-green-700 bg-green-100 border border-green-200 rounded px-4 py-2 text-sm">
-            {successMessage}
-          </div>
-        )}
-        {!showVerify ? (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">Telefon Numarası</label>
-              <input
-                type="tel"
-                name="telephone"
-                maxLength={11}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white"
-                placeholder="05xxxxxxxxx"
-                value={form.telephone}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                autoComplete="tel"
-                pattern="[0-9]*"
-                title="Sadece sayılar girebilirsiniz"
-                onKeyPress={(e) => {
-                  // Sadece sayılar
-                  if (!/[0-9]/.test(e.key)) {
-                    e.preventDefault();
-                  }
-                }}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">Şifre</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white pr-10"
-                  placeholder="Şifreniz"
-                  value={form.password}
-                  onChange={handleChange}
-                  disabled={isSubmitting}
-                  autoComplete="current-password"
-                  maxLength={6}
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600"
-                  onClick={() => setShowPassword((v) => !v)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 2.25 12c2.036 3.807 6.07 6.75 9.75 6.75 1.563 0 3.06-.362 4.396-1.02M6.25 6.25l11.5 11.5M9.75 9.75a3 3 0 1 0 4.5 4.5" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6.25 0c-2.036-3.807-6.07-6.75-9.75-6.75-1.563 0-3.06.362-4.396 1.02M3.98 8.223A10.477 10.477 0 0 0 2.25 12c2.036 3.807 6.07 6.75 9.75 6.75 1.563 0 3.06-.362 4.396-1.02" />
-                    </svg>
-                  )}
-                </button>
+          <div className="rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
               </div>
             </div>
-            <button
-              type="submit"
-              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
-            </button>
-            <div className="flex justify-between text-sm mt-2">
-              <Link to="/register" className="text-blue-600 hover:underline">Kayıt Ol</Link>
-              <Link to="/forgot-password" className="text-gray-500 hover:underline">Şifremi Unuttum</Link>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="rounded-xl bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
+              </div>
             </div>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifySubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">SMS Doğrulama Kodu</label>
-              <input
-                type="text"
-                name="verifyCode"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white"
-                placeholder="Doğrulama kodu"
-                value={verifyCode}
-                onChange={(e) => setVerifyCode(e.target.value)}
-                disabled={isSubmitting}
-                autoComplete="one-time-code"
-              />
-            </div>
-            <button
+          </div>
+        )}
+
+        {/* Form Card */}
+        <div className="card p-8">
+          {!showVerify ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Telefon Numarası
+                </label>
+                <input
+                  type="tel"
+                  name="telephone"
+                  maxLength={11}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus-ring text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder="05xxxxxxxxx"
+                  value={form.telephone}
+                  onChange={handleChange}
+                  disabled={isSubmitting}
+                  autoComplete="tel"
+                  pattern="[0-9]*"
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Şifre
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus-ring text-base pr-12 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    placeholder="6 haneli şifreniz"
+                    value={form.password}
+                    onChange={handleChange}
+                    disabled={isSubmitting}
+                    autoComplete="current-password"
+                    maxLength={6}
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#005bac] transition-colors"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.464 6.464M9.878 9.878l-2.415-2.414M14.12 14.12l2.415 2.415M14.12 14.12L17.536 17.536M14.12 14.12l2.415-2.415M3 3l3.5 3.5m0 0L9 9l3 3 3 3 3.5 3.5" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <button
                 type="submit"
-              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="btn-primary w-full flex justify-center items-center"
                 disabled={isSubmitting}
               >
-              {isSubmitting ? 'Doğrulanıyor...' : 'Doğrula ve Giriş Yap'}
-            </button>
-            
-            {/* Tekrar SMS Kodu Gönder Butonu */}
-            <button
-              type="button"
-              className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-              onClick={handleResendSms}
-              disabled={isResending || isSubmitting}
-            >
-              {isResending ? 'SMS Gönderiliyor...' : 'Tekrar SMS Kodu Gönder'}
-            </button>
-            
-            <button
-              type="button"
-              className="w-full py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg shadow-md transition duration-150"
-              onClick={() => setShowVerify(false)}
-              disabled={isSubmitting}
-                    >
-              Geri Dön
-            </button>
+                {isSubmitting ? (
+                  <>
+                    <div className="spinner mr-2"></div>
+                    Giriş Yapılıyor...
+                  </>
+                ) : (
+                  'Giriş Yap'
+                )}
+              </button>
+
+              {/* Links */}
+              <div className="flex items-center justify-between text-sm">
+                <Link to="/register" className="text-[#005bac] hover:text-[#004690] font-medium transition-colors">
+                  Hesabın yok mu? Kayıt ol
+                </Link>
+                <Link to="/forgot-password" className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                  Şifremi unuttum
+                </Link>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifySubmit} className="space-y-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-[#005bac]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">SMS Doğrulama</h2>
+                <p className="text-gray-600 dark:text-gray-400">Telefonunuza gönderilen doğrulama kodunu girin</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Doğrulama Kodu
+                </label>
+                <input
+                  type="text"
+                  name="verifyCode"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus-ring text-base text-center text-lg tracking-widest bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  placeholder="------"
+                  value={verifyCode}
+                  onChange={(e) => setVerifyCode(e.target.value)}
+                  disabled={isSubmitting}
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  type="submit"
+                  className="btn-primary w-full flex justify-center items-center"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="spinner mr-2"></div>
+                      Doğrulanıyor...
+                    </>
+                  ) : (
+                    'Doğrula ve Giriş Yap'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-outline w-full flex justify-center items-center"
+                  onClick={handleResendSms}
+                  disabled={isResending || isSubmitting}
+                >
+                  {isResending ? (
+                    <>
+                      <div className="spinner mr-2"></div>
+                      SMS Gönderiliyor...
+                    </>
+                  ) : (
+                    'Tekrar SMS Kodu Gönder'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-secondary w-full"
+                  onClick={() => setShowVerify(false)}
+                  disabled={isSubmitting}
+                >
+                  Geri Dön
+                </button>
+              </div>
             </form>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            BinCard ile güvenli ulaşım deneyimi
+          </p>
+        </div>
       </div>
     </div>
   );
 };
 
-export default Login; 
+export default Login;

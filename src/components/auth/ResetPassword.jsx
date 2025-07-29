@@ -16,7 +16,7 @@ import { Lock, Visibility, VisibilityOff, Sms } from '@mui/icons-material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import AuthService from '../../services/auth.service';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const ResetPassword = () => {
@@ -416,7 +416,6 @@ const ResetPassword = () => {
           </form>
         </Paper>
       </Container>
-      <ToastContainer />
     </Box>
   );
 };

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AuthService from '../../services/auth.service';
 import WalletService from '../../services/wallet.service';
+import NewsService from '../../services/news.service';
 import News from './News.jsx';
 import LikedNews from './LikedNews.jsx';
 import Wallet from './Wallet.jsx';
@@ -11,21 +12,19 @@ import Feedback from './Feedback.jsx';
 import PaymentPoints from './PaymentPoints.jsx';
 import Settings from './Settings.jsx';
 import TokenDebug from '../debug/TokenDebug.jsx';
+import bincardLogo from '../../assets/bincard-logo.jpg';
 
+// KonyaKart stilinde menü öğeleri
 const menuItems = [
   { text: 'Ana Sayfa', icon: '🏠', path: 'dashboard', key: 'dashboard' },
-  { text: 'Cüzdan', icon: '👛', path: 'wallet', key: 'wallet' },
-  { text: 'Ödeme Noktaları', icon: '🏪', path: 'payment-points', key: 'payment-points' },
-  { text: 'Geçmiş İşlemler', icon: '📜', path: 'history', key: 'history' },
+  { text: 'Cüzdan', icon: '�', path: 'wallet', key: 'wallet' },
+  { text: 'Ödeme Noktaları', icon: '📍', path: 'payment-points', key: 'payment-points' },
+  { text: 'İşlem Geçmişi', icon: '�', path: 'history', key: 'history' },
   { text: 'Haberler', icon: '📰', path: 'news', key: 'news' },
-  { text: 'Beğendiğim Haberler', icon: '❤️', path: 'liked-news', key: 'liked-news' },
-  { text: 'Geri Bildirim', icon: '💬', path: 'feedback', key: 'feedback' },
+  { text: 'Favoriler', icon: '⭐', path: 'liked-news', key: 'liked-news' },
+  { text: 'Destek', icon: '💬', path: 'feedback', key: 'feedback' },
   { text: 'Ayarlar', icon: '⚙️', path: 'settings', key: 'settings' },
-  { text: 'Debug', icon: '🔧', path: 'debug', key: 'debug' },
 ];
-
-const HEADER_HEIGHT = 56; // px
-const SIDEBAR_WIDTH = 224; // 56 * 4 px
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -35,16 +34,7 @@ const Dashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [walletData, setWalletData] = useState(null);
   const [isLoadingWallet, setIsLoadingWallet] = useState(false);
-
-  // Tema kontrolü
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
+  const [user, setUser] = useState(null);
 
   // URL'ye göre aktif tab'ı belirle
   useEffect(() => {
@@ -57,35 +47,36 @@ const Dashboard = () => {
     const checkAuth = () => {
       try {
         const authStatus = AuthService.isAuthenticated();
-        console.log('Dashboard auth check:', authStatus);
         setIsAuthenticated(authStatus);
         
-        // Token yoksa veya geçersizse login'e yönlendir
-        if (!authStatus) {
-          console.log('Dashboard: User not authenticated, checking if should redirect');
-          // Sadece protected route'larda redirect yap
-          const protectedRoutes = ['/liked-news', '/payment-points', '/settings', '/wallet', '/transfer-detail'];
-          if (protectedRoutes.includes(location.pathname)) {
-            console.log('Dashboard: Redirecting to login from protected route');
-            navigate('/login');
+        if (authStatus) {
+          // Kullanıcı bilgilerini al
+          try {
+            const savedProfile = localStorage.getItem('lastKnownProfile');
+            if (savedProfile) {
+              setUser(JSON.parse(savedProfile));
+            }
+          } catch (error) {
+            console.warn('Profil bilgisi alınamadı:', error);
           }
-          setWalletData(null); // Auth yoksa wallet data'yı temizle
+        } else {
+          setUser(null);
+          setWalletData(null);
         }
       } catch (error) {
         console.error('Dashboard auth check error:', error);
         setIsAuthenticated(false);
         setWalletData(null);
+        setUser(null);
       }
     };
     
     checkAuth();
-    
-    // Auth durumu değişikliklerini dinle (daha az sıklıkta)
     const interval = setInterval(checkAuth, 5000);
     return () => clearInterval(interval);
   }, [navigate, location.pathname]);
 
-  // Wallet bilgisini çek (sadece authenticated kullanıcılar için)
+  // Wallet bilgisini çek
   useEffect(() => {
     const fetchWalletData = async () => {
       if (!isAuthenticated) {
@@ -95,13 +86,10 @@ const Dashboard = () => {
 
       setIsLoadingWallet(true);
       try {
-        console.log('[DASHBOARD] Wallet bilgisi çekiliyor...');
         const data = await WalletService.getMyWallet();
-        console.log('[DASHBOARD] Wallet bilgisi alındı:', data);
         setWalletData(data);
       } catch (error) {
         console.error('[DASHBOARD] Wallet bilgisi alınamadı:', error);
-        // Hata durumunda wallet data'yı null yap
         setWalletData(null);
       } finally {
         setIsLoadingWallet(false);
@@ -114,16 +102,14 @@ const Dashboard = () => {
   const handleNavigation = async (item) => {
     try {
       if ((item.key === 'liked-news' || item.key === 'payment-points' || item.key === 'settings') && !AuthService.isAuthenticated()) {
-        // Giriş yapılmamışsa modal aç
         const result = await AuthService.showLoginConfirmModal(
           item.key === 'liked-news'
-            ? 'Beğenilen haberleri görüntüleme işlemini'
+            ? 'Favori haberleri görüntüleme işlemini'
             : item.key === 'payment-points'
               ? 'Yakındaki ödeme noktalarını görüntüleme işlemini'
               : 'Ayarları görüntüleme işlemini',
           navigate
         );
-        // Evet derse zaten modal fonksiyonu login'e yönlendiriyor, hayır derse hiçbir şey yapma
         return;
       }
       setActiveTab(item.key);
@@ -138,12 +124,12 @@ const Dashboard = () => {
     if (isAuthenticated) {
       AuthService.logout();
       setIsAuthenticated(false);
+      setUser(null);
     } else {
       navigate('/login');
     }
   };
 
-  // Hangi component'i render edeceğini belirle
   const renderContent = () => {
     switch (activeTab) {
       case 'news':
@@ -166,109 +152,235 @@ const Dashboard = () => {
           isAuthenticated={isAuthenticated}
           walletData={walletData}
           isLoadingWallet={isLoadingWallet}
+          user={user}
         />;
     }
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
-      {/* Header */}
-      <header className="fixed top-0 left-0 w-full h-14 flex items-center justify-between px-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 z-40 shadow-sm">
-        <div className="flex items-center">
-          <button className="md:hidden mr-2 text-gray-500 dark:text-gray-400" onClick={() => setSidebarOpen(true)}>
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-          </button>
-          <span className="text-base font-bold text-blue-700 dark:text-blue-400 tracking-tight">Dashboard</span>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      {/* KonyaKart stilinde Header */}
+      <header className="fixed top-0 left-0 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 shadow-sm transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo ve başlık */}
+            <div className="flex items-center space-x-4">
+              <button 
+                className="md:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-[#005bac] dark:hover:text-[#2c7bc7] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm">
+                  <img 
+                    src={bincardLogo} 
+                    alt="BinCard Logo" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <h1 className="text-xl font-bold text-[#005bac] hidden sm:block">BinCard</h1>
+              </div>
+            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              {menuItems.slice(0, 5).map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => handleNavigation(item)}
+                  className={`nav-link px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    activeTab === item.key ? 'nav-link-active bg-blue-50 dark:bg-blue-900/30' : ''
+                  }`}
+                >
+                  {item.text}
+                </button>
+              ))}
+            </nav>
+
+            {/* User Menu */}
+            <div className="flex items-center space-x-4">
+              {isAuthenticated ? (
+                <div className="flex items-center space-x-3">
+                  <div className="text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
+                    Hoş geldin, {user?.firstName || 'Kullanıcı'}
+                  </div>
+                  <button
+                    onClick={handleAuthAction}
+                    className="btn-secondary py-2 px-4 text-sm"
+                  >
+                    Çıkış Yap
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="btn-outline py-2 px-4 text-sm"
+                  >
+                    Giriş Yap
+                  </button>
+                  <button
+                    onClick={() => navigate('/register')}
+                    className="btn-primary py-2 px-4 text-sm"
+                  >
+                    Kayıt Ol
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        
-        {/* Auth Button */}
-        <button
-          onClick={handleAuthAction}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            isAuthenticated 
-              ? 'bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white' 
-              : 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white'
-          }`}
-        >
-          {isAuthenticated ? '🚪 Çıkış' : '🔑 Giriş Yap'}
-        </button>
       </header>
 
-      {/* Sidebar */}
-      <aside className={`fixed top-14 left-0 h-[calc(100vh-56px)] w-56 bg-white/70 dark:bg-gray-800/90 border-r border-gray-200 dark:border-gray-700 flex flex-col z-30 transition-transform duration-200 shadow-xl backdrop-blur-md ${sidebarOpen ? 'translate-x-0' : '-translate-x-56'} md:translate-x-0`}>
-        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100 dark:border-gray-700 md:hidden">
-          <span className="text-lg font-bold text-blue-700 dark:text-blue-400 tracking-tight">BinCard</span>
-          <button className="text-gray-500 dark:text-gray-400" onClick={() => setSidebarOpen(false)}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <nav className="flex-1 py-4 overflow-y-auto relative">
-          {/* Vertical line */}
-          <div className="absolute left-8 top-4 h-[calc(100%-2rem)] w-1 bg-gradient-to-b from-blue-300 via-blue-100 to-purple-200 dark:from-blue-600 dark:via-blue-500 dark:to-purple-500 rounded-full pointer-events-none shadow-md" />
-          <div className="flex flex-col gap-2">
-            {menuItems.map((item, idx) => (
+      {/* Mobile Sidebar */}
+      <div className={`fixed inset-0 z-40 md:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
+        <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)}></div>
+        <nav className="fixed top-0 left-0 bottom-0 w-64 bg-white dark:bg-gray-800 shadow-xl transform transition-transform duration-300 ease-in-out">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm">
+                  <img 
+                    src={bincardLogo} 
+                    alt="BinCard Logo" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <h2 className="text-lg font-bold text-[#005bac]">BinCard</h2>
+              </div>
               <button
-                key={item.text}
-                onClick={() => handleNavigation(item)}
-                className={`relative flex items-center w-full pl-16 pr-4 py-3 transition-all duration-200 rounded-xl font-semibold text-base bg-transparent group
-                  ${activeTab === item.key ? 'bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 text-blue-800 dark:text-blue-300 shadow-md' : 'text-gray-700 dark:text-gray-300 hover:bg-blue-50/80 dark:hover:bg-gray-700/50 hover:text-blue-700 dark:hover:text-blue-400'}
-                `}
-                style={{ minHeight: '48px' }}
+                onClick={() => setSidebarOpen(false)}
+                className="p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
               >
-                {/* Dot for each menu item */}
-                <span className={`absolute left-6 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full transition-all duration-200 shadow-md
-                  ${activeTab === item.key ? 'bg-gradient-to-br from-blue-500 to-purple-500 scale-125 shadow-lg' : 'bg-blue-100 dark:bg-blue-800 group-hover:bg-blue-300 dark:group-hover:bg-blue-600'}
-                `} />
-                <span className={`transition-all duration-200 tracking-wide
-  ${activeTab === item.key ? `font-extrabold text-lg bg-gradient-to-r from-blue-700 via-purple-600 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(99,102,241,0.25)]
-    after:content-[''] after:block after:h-1 after:rounded-full after:mt-1 after:bg-gradient-to-r after:from-blue-400 after:to-purple-400 after:opacity-70` :
-    'group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:drop-shadow-[0_2px_8px_rgba(99,102,241,0.10)] text-base'}
-`}>{item.text}</span>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
-            ))}
+            </div>
+            <div className="space-y-2">
+              {menuItems.map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => handleNavigation(item)}
+                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg text-left transition-colors ${
+                    activeTab === item.key
+                      ? 'bg-[#005bac] text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span className="font-medium">{item.text}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </nav>
-      </aside>
+      </div>
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && <div className="fixed inset-0 bg-black bg-opacity-30 dark:bg-opacity-50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />}
-
-      {/* Main content */}
-      <div className="pt-14 md:pl-56 min-h-screen">
-        <ToastContainer />
+      {/* Main Content */}
+      <div className="pt-16">
         {renderContent()}
       </div>
     </div>
   );
 };
 
-// Ana dashboard içeriği için ayrı component
-const DashboardHome = ({ isAuthenticated: authProp, walletData, isLoadingWallet }) => {
+// KonyaKart stilinde Ana Dashboard Bileşeni
+const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user }) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [newsData, setNewsData] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Kullanıcı durumunu kontrol et
+  // Haberler için API çağrısı
   useEffect(() => {
-    const checkAuth = () => {
-      const authStatus = authProp !== undefined ? authProp : AuthService.isAuthenticated();
-      setIsAuthenticated(authStatus);
-      
-      if (authStatus) {
-        // Kullanıcı giriş yapmışsa profil bilgisini al (isteğe bağlı)
-        try {
-          const savedProfile = localStorage.getItem('lastKnownProfile');
-          if (savedProfile) {
-            setUser(JSON.parse(savedProfile));
-          }
-        } catch (error) {
-          console.warn('Profil bilgisi alınamadı:', error);
+    const fetchNews = async () => {
+      try {
+        // NewsService kullanarak haberler çek
+        const data = await NewsService.getNews();
+        if (data && data.content) {
+          setNewsData(data.content.slice(0, 5)); // İlk 5 haberi al
+        } else {
+          throw new Error('News data format error');
         }
+      } catch (error) {
+        console.warn('API\'den haberler alınamadı, demo haberler yükleniyor:', error);
+        // Demo haberler yükle
+        setNewsData([
+          {
+            id: 1,
+            title: "Yeni Akıllı Duraklar Hizmete Girdi",
+            summary: "Konya'da 50 yeni akıllı durak teknolojisi ile vatandaşlara hizmet vermeye başladı.",
+            imageUrl: "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=800&h=400&fit=crop",
+            category: "Ulaşım",
+            publishDate: "2024-12-15"
+          },
+          {
+            id: 2,
+            title: "BinCard ile %20 İndirim Kampanyası",
+            summary: "Bu ay boyunca BinCard kullanıcılarına özel indirim fırsatları sizi bekliyor.",
+            imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=400&fit=crop",
+            category: "Kampanya",
+            publishDate: "2024-12-14"
+          },
+          {
+            id: 3,
+            title: "Toplu Taşıma Güzergahları Güncellendi",
+            summary: "Vatandaş taleplerini değerlendirerek 15 otobüs hattında güzergah iyileştirmesi yapıldı.",
+            imageUrl: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&h=400&fit=crop",
+            category: "Duyuru",
+            publishDate: "2024-12-13"
+          },
+          {
+            id: 4,
+            title: "Mobil Ödeme Sistemi Devreye Girdi",
+            summary: "Artık QR kod ile kolayca ödeme yapabilir, kartınızı unuttuğunuzda bile ulaşımınızı sürdürebilirsiniz.",
+            imageUrl: "https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?w=800&h=400&fit=crop",
+            category: "Teknoloji",
+            publishDate: "2024-12-12"
+          },
+          {
+            id: 5,
+            title: "Çevre Dostu Ulaşım Ödülleri",
+            summary: "Toplu taşıma kullanan vatandaşlara çevre bilinci ödülü verilmeye başlandı.",
+            imageUrl: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&h=400&fit=crop",
+            category: "Çevre",
+            publishDate: "2024-12-11"
+          }
+        ]);
+      } finally {
+        setNewsLoading(false);
       }
     };
 
-    checkAuth();
-  }, [authProp]);
+    fetchNews();
+  }, []);
+
+  // Otomatik slider
+  useEffect(() => {
+    if (newsData.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % newsData.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [newsData.length]);
+
+  // Slider navigation
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % newsData.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + newsData.length) % newsData.length);
+  };
+
+  const goToSlide = (index) => {
+    setCurrentSlide(index);
+  };
 
   // Auth gerektiren işlemler için kontrol fonksiyonu
   const handleAuthRequired = (action, path) => {
@@ -289,7 +401,8 @@ const DashboardHome = ({ isAuthenticated: authProp, walletData, isLoadingWallet 
     return `₺${parseFloat(balance).toFixed(2).replace('.', ',')}`;
   };
 
-  const cards = [
+  // Ana kart verileri
+  const mainCards = [
     {
       title: 'Bakiye',
       value: isAuthenticated 
@@ -299,165 +412,332 @@ const DashboardHome = ({ isAuthenticated: authProp, walletData, isLoadingWallet 
             ? formatBalance(walletData.balance || walletData.totalBalance || walletData.amount || 0)
             : '₺0,00'
         : 'Giriş Yapın',
-      icon: '💰',
-      action: isAuthenticated ? 'Cüzdanı Aç' : 'Giriş Yap',
-      color: 'from-blue-600 to-blue-400',
-      onClick: () => isAuthenticated ? navigate('/wallet') : handleAuthRequired('Cüzdan işlemleri', '/wallet')
+      icon: '�',
+      color: 'bg-gradient-to-br from-[#005bac] to-[#004690]',
+      onClick: () => isAuthenticated ? navigate('/wallet') : navigate('/login')
     },
     {
-      title: 'Aktif Biletler',
-      value: isAuthenticated ? '2 Bilet' : 'Giriş Yapın',
+      title: 'Aktif Kartlar',
+      value: isAuthenticated ? '2 Kart' : '--',
       icon: '🎫',
-      action: isAuthenticated ? 'Biletleri Görüntüle' : 'Giriş Yap',
-      color: 'from-green-400 to-blue-700',
-      onClick: () => isAuthenticated ? navigate('/cards') : handleAuthRequired('Bilet işlemleri', '/cards')
+      color: 'bg-gradient-to-br from-green-500 to-green-600',
+      onClick: () => isAuthenticated ? navigate('/wallet') : navigate('/login')
     },
     {
       title: 'Puanlar',
-      value: isAuthenticated ? '120' : 'Giriş Yapın',
+      value: isAuthenticated ? '1,240' : '--',
       icon: '⭐',
-      action: isAuthenticated ? 'Puanları Kullan' : 'Giriş Yap',
-      color: 'from-yellow-400 to-yellow-200',
-      onClick: () => isAuthenticated ? navigate('/cards') : handleAuthRequired('Puan işlemleri', '/cards')
+      color: 'bg-gradient-to-br from-yellow-500 to-orange-500',
+      onClick: () => isAuthenticated ? navigate('/wallet') : navigate('/login')
     },
+    {
+      title: 'Bu Ay',
+      value: isAuthenticated ? '42 Yolculuk' : '--',
+      icon: '🚌',
+      color: 'bg-gradient-to-br from-purple-500 to-purple-600',
+      onClick: () => isAuthenticated ? navigate('/history') : navigate('/login')
+    }
   ];
 
-  // Hızlı erişim kısayolları
+  // Hızlı işlemler
   const quickActions = [
     {
-      title: 'Yakındaki Ödeme Noktaları',
-      description: 'Yakınınızdaki bakiye yükleme noktalarını bul',
-      icon: '🏪',
-      color: 'from-purple-500 to-purple-300',
-      onClick: () => navigate('/payment-points')
+      title: 'Bakiye Yükle',
+      description: 'Kartınıza hızlıca bakiye yükleyin',
+      icon: '💰',
+      action: () => isAuthenticated ? navigate('/wallet') : navigate('/login')
     },
     {
-      title: 'Geri Bildirim',
-      description: 'Deneyimini paylaş, önerilerini ilet',
-      icon: '💬',
-      color: 'from-green-500 to-green-300',
-      onClick: () => navigate('/feedback')
+      title: 'Ödeme Noktaları',
+      description: 'Yakındaki bayileri keşfedin',
+      icon: '📍',
+      action: () => navigate('/payment-points')
     },
     {
-      title: 'Haberler',
-      description: 'Kampanyalar ve özel fırsatları keşfet',
-      icon: '📰',
-      color: 'from-blue-500 to-blue-300',
-      onClick: () => navigate('/news')
+      title: 'İşlem Geçmişi',
+      description: 'Geçmiş işlemlerinizi görüntüleyin',
+      icon: '�',
+      action: () => isAuthenticated ? navigate('/history') : navigate('/login')
+    },
+    {
+      title: 'Destek Al',
+      description: 'Yardım ve geri bildirim',
+      icon: '�',
+      action: () => navigate('/feedback')
     }
   ];
 
   const recentTransactions = [
-    { id: 1, type: 'Bilet Alımı', amount: '-₺3,50', date: '2024-02-20', route: '500T Tuzla-Kadıköy' },
-    { id: 2, type: 'Bakiye Yükleme', amount: '+₺50,00', date: '2024-02-19', route: '-' },
-    { id: 3, type: 'Bilet Alımı', amount: '-₺3,50', date: '2024-02-19', route: '500T Kadıköy-Tuzla' },
+    { id: 1, type: 'Otobüs Bilet', amount: '-₺4,25', date: '15 Ara', location: 'Karatay - Selçuklu' },
+    { id: 2, type: 'Bakiye Yükleme', amount: '+₺50,00', date: '14 Ara', location: 'Online' },
+    { id: 3, type: 'Otobüs Bilet', amount: '-₺4,25', date: '14 Ara', location: 'Selçuklu - Meram' },
+    { id: 4, type: 'Otobüs Bilet', amount: '-₺4,25', date: '13 Ara', location: 'Meram - Karatay' },
   ];
   
   return (
-    <main className="p-4 md:p-8 bg-gradient-to-br from-blue-50 to-blue-100 min-h-[calc(100vh-56px)]">
-      {/* Welcome */}
-      <section className={`rounded-xl shadow-md p-4 md:p-6 mb-4 ${
-        isAuthenticated 
-          ? 'bg-gradient-to-r from-blue-600 to-blue-400 text-white' 
-          : 'bg-gradient-to-r from-gray-600 to-gray-400 text-white'
-      }`}>
-        <h2 className="text-xl md:text-2xl font-bold mb-1">
-          {isAuthenticated 
-            ? `Hoş Geldin${user?.firstName ? `, ${user.firstName}` : ', Kullanıcı'}!` 
-            : 'BinCard Dashboard\'a Hoş Geldin!'
-          }
-        </h2>
-        <p className="opacity-90 text-sm md:text-base">
-          {isAuthenticated 
-            ? 'Akıllı bilet ve kart yönetim paneline hoş geldin. Buradan bakiyeni, biletlerini ve geçmiş işlemlerini kolayca yönetebilirsin.'
-            : 'Tüm özelliklerden faydalanmak için giriş yapın. Haberleri görüntüleyebilir ancak beğenmek ve cüzdan işlemleri için giriş yapmanız gerekiyor.'
-          }
-        </p>
-        {!isAuthenticated && (
-          <div className="mt-4 flex space-x-3">
-            <button 
-              onClick={() => navigate('/login')}
-              className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-medium transition-all"
-            >
-              🔑 Giriş Yap
-            </button>
-            <button 
-              onClick={() => navigate('/register')}
-              className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-medium transition-all"
-            >
-              📝 Kayıt Ol
-            </button>
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      {/* Hero Section */}
+      <section className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 fade-in">
+              {isAuthenticated 
+                ? `Hoş Geldin${user?.firstName ? `, ${user.firstName}` : ''}!` 
+                : 'BinCard ile Şehri Keşfedin'
+              }
+            </h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto fade-in">
+              {isAuthenticated 
+                ? 'Akıllı ulaşım kartınızı kolayca yönetin, bakiye yükleyin ve işlemlerinizi takip edin.'
+                : 'Akıllı ulaşım kartı sistemi ile şehir içi ulaşımda konfor ve kolaylık yaşayın. Hemen üye olun ve avantajlardan yararlanın.'
+              }
+            </p>
+            {!isAuthenticated && (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center fade-in">
+                <button 
+                  onClick={() => navigate('/register')}
+                  className="btn-primary"
+                >
+                  Hemen Kayıt Ol
+                </button>
+                <button 
+                  onClick={() => navigate('/login')}
+                  className="btn-outline"
+                >
+                  Giriş Yap
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </section>
-      {/* Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-        {cards.map((card) => (
-          <div 
-            key={card.title} 
-            className={`rounded-xl shadow-md p-4 text-white bg-gradient-to-br ${card.color} flex flex-col items-start justify-between min-h-[120px] cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1`}
-            onClick={card.onClick}
-          >
-            <div className="flex items-center mb-1">
-              <span className="text-2xl mr-2">{card.icon}</span>
-              <span className="text-base font-semibold tracking-tight">{card.title}</span>
-            </div>
-            <div className="text-xl font-bold mb-1">{card.value}</div>
-            <button className="mt-auto px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition">{card.action}</button>
-          </div>
-        ))}
+        </div>
       </section>
 
-      {/* Hızlı Erişim */}
-      <section className="mb-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">🚀 Hızlı Erişim</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {quickActions.map(action => (
-            <div 
-              key={action.title}
-              className={`bg-gradient-to-r ${action.color} text-white rounded-xl shadow-md p-4 cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1`}
-              onClick={action.onClick}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Haber Slider */}
+        <section className="mb-12 slide-up">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Güncel Haberler</h2>
+            <button 
+              onClick={() => navigate('/news')}
+              className="text-[#005bac] hover:text-[#004690] font-medium transition-colors duration-200 flex items-center gap-2"
             >
-              <div className="flex items-start space-x-3">
-                <span className="text-2xl">{action.icon}</span>
-                <div>
-                  <h3 className="font-bold text-lg mb-1">{action.title}</h3>
-                  <p className="text-white/80 text-sm">{action.description}</p>
+              Tümünü Gör
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+            {newsLoading ? (
+              <div className="h-80 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                <div className="spinner"></div>
+                <span className="ml-3 text-gray-600 dark:text-gray-300">Haberler yükleniyor...</span>
+              </div>
+            ) : newsData.length > 0 ? (
+              <>
+                {/* Slider Container */}
+                <div 
+                  className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                >
+                  {newsData.map((news, index) => (
+                    <div key={news.id} className="w-full flex-shrink-0">
+                      <div className="relative h-80">
+                        <img 
+                          src={news.imageUrl} 
+                          alt={news.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDgwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNzUgMTcwSDQyNVYyMzBIMzc1VjE3MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTM1MCAyMDBIMzc1VjIzMEgzNTBWMjAwWiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                        <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className="px-3 py-1 bg-[#005bac] text-white text-sm font-medium rounded-full">
+                              {news.category}
+                            </span>
+                            <span className="text-sm text-gray-200">
+                              {new Date(news.publishDate).toLocaleDateString('tr-TR')}
+                            </span>
+                          </div>
+                          <h3 className="text-2xl font-bold mb-2 line-clamp-2">{news.title}</h3>
+                          <p className="text-gray-200 line-clamp-2">{news.summary}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Navigation Arrows */}
+                {newsData.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevSlide}
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 text-gray-800 dark:text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={nextSlide}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 text-gray-800 dark:text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+
+                {/* Dots Indicator */}
+                {newsData.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                    {newsData.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => goToSlide(index)}
+                        className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                          index === currentSlide 
+                            ? 'bg-white shadow-lg scale-110' 
+                            : 'bg-white/50 hover:bg-white/80'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="h-80 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                <p className="text-gray-600 dark:text-gray-300">Henüz haber bulunmuyor.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Ana Kartlar */}
+        <section className="mb-12 slide-up">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Özet Bilgiler</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {mainCards.map((card, index) => (
+              <div 
+                key={card.title}
+                className={`card card-hover ${card.color} text-white p-6 cursor-pointer transform transition-all duration-200`}
+                onClick={card.onClick}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-3xl">{card.icon}</div>
+                  <div className="text-white/80">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold text-white/90 mb-2">{card.title}</h3>
+                <p className="text-2xl font-bold">{card.value}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Hızlı İşlemler */}
+        <section className="mb-12 slide-up">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Hızlı İşlemler</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {quickActions.map((action, index) => (
+              <div 
+                key={action.title}
+                className="card card-hover p-6 cursor-pointer group"
+                onClick={action.action}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-200">
+                  {action.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{action.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">{action.description}</p>
+                <div className="mt-4 text-[#005bac] font-medium group-hover:translate-x-1 transition-transform duration-200">
+                  İlerle →
                 </div>
               </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Son İşlemler - Sadece giriş yapmış kullanıcılar için */}
+        {isAuthenticated && (
+          <section className="slide-up">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Son İşlemler</h2>
+              <button 
+                onClick={() => navigate('/history')}
+                className="text-[#005bac] hover:text-[#004690] font-medium transition-colors"
+              >
+                Tümünü Gör →
+              </button>
             </div>
-          ))}
-        </div>
-      </section>
-      
-      {/* Recent Transactions - Sadece giriş yapmış kullanıcılar için */}
-      {isAuthenticated && (
-        <section className="bg-white rounded-xl shadow-md p-4 w-full">
-        <h3 className="text-lg font-bold text-blue-700 mb-3">Son İşlemler</h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-xs md:text-sm">
-            <thead>
-              <tr className="text-gray-600 border-b">
-                <th className="py-2 px-2 text-left">Tarih</th>
-                <th className="py-2 px-2 text-left">İşlem</th>
-                <th className="py-2 px-2 text-left">Tutar</th>
-                <th className="py-2 px-2 text-left">Güzergah</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentTransactions.map(tx => (
-                <tr key={tx.id} className="border-b last:border-0">
-                  <td className="py-2 px-2 whitespace-nowrap">{tx.date}</td>
-                  <td className="py-2 px-2 whitespace-nowrap">{tx.type}</td>
-                  <td className={`py-2 px-2 font-semibold ${tx.amount.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>{tx.amount}</td>
-                  <td className="py-2 px-2 whitespace-nowrap">{tx.route}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      )}
+            <div className="card p-6">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">İşlem</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Tutar</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Tarih</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white">Konum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentTransactions.map((tx) => (
+                      <tr key={tx.id} className="border-b border-gray-100 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-gray-900 dark:text-white">{tx.type}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`font-semibold ${
+                            tx.amount.startsWith('+') ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {tx.amount}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{tx.date}</td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{tx.location}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Giriş yapmamış kullanıcılar için bilgi kartları */}
+        {!isAuthenticated && (
+          <section className="slide-up">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Neden BinCard?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="card p-6 text-center">
+                <div className="text-4xl mb-4">🚀</div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Hızlı ve Kolay</h3>
+                <p className="text-gray-600 dark:text-gray-400">Kartınızı okutun, yolculuğa başlayın. Hiç nakit para taşımaya gerek yok.</p>
+              </div>
+              <div className="card p-6 text-center">
+                <div className="text-4xl mb-4">💰</div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Ekonomik</h3>
+                <p className="text-gray-600 dark:text-gray-400">Nakit ödemeye göre daha uygun fiyatlarla şehir içi ulaşımın keyfini çıkarın.</p>
+              </div>
+              <div className="card p-6 text-center">
+                <div className="text-4xl mb-4">📱</div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Dijital Takip</h3>
+                <p className="text-gray-600 dark:text-gray-400">Bakiyenizi, işlemlerinizi ve yolculuk geçmişinizi online takip edin.</p>
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
     </main>
   );
 };

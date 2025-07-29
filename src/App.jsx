@@ -1,7 +1,5 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material';
-import CssBaseline from '@mui/material/CssBaseline';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AuthService from './services/auth.service';
@@ -11,65 +9,6 @@ import Register from './components/auth/Register';
 import ForgotPassword from './components/auth/ForgotPassword';
 import ResetPassword from './components/auth/ResetPassword';
 import Dashboard from './components/dashboard/Dashboard';
-// import Profile from './components/dashboard/Profile';
-
-// Material UI teması
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-  typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          borderRadius: 8,
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
-          },
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-        },
-      },
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-        },
-      },
-    },
-  },
-});
 
 // Router future flags
 const routerFutureConfig = {
@@ -78,14 +17,8 @@ const routerFutureConfig = {
 };
 
 function App() {
-
-  // Uygulama yüklendiğinde theme ayarını kontrol et ve uygula
+  // Uygulama yüklendiğinde auto-refresh başlat
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    }
-    
     // Eğer kullanıcı authenticated ise auto-refresh'i başlat
     if (AuthService.isAuthenticated()) {
       console.log('[APP] Kullanıcı authenticated, auto-refresh başlatılıyor');
@@ -98,35 +31,8 @@ function App() {
     };
   }, []);
 
-  // SADECE sekme/tarayıcı tamamen kapanırken logout yap, sayfa yenilemede değil
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      // Bu sadece sekme/tarayıcı kapanırken çalışır, sayfa yenilemede çalışmaz
-      if (e.type === 'beforeunload') {
-        // Sadece gerçekten kapanıyorsa logout yap
-        // Sayfa yenilemede logout yapma
-        return;
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      // Sekme gizlendiğinde/gösterildiğinde logout yapma
-      // Bu özelliği kaldırıyoruz çünkü UX için kötü
-    };
-
-    // Bu event listener'ları kaldırıyoruz çünkü sayfa yenilemede sorun çıkarıyorlar
-    // window.addEventListener('beforeunload', handleBeforeUnload);
-    // window.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      // window.removeEventListener('beforeunload', handleBeforeUnload);
-      // window.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <div className="min-h-screen bg-gray-50">
       <Router future={routerFutureConfig}>
         <Routes>
           {/* Public routes */}
@@ -134,6 +40,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          
           {/* Dashboard routes - tüm dashboard sayfaları Dashboard component'i üzerinden yönetilir */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/news" element={<Dashboard />} />
@@ -146,22 +53,29 @@ function App() {
           <Route path="/settings" element={<Dashboard />} />
           <Route path="/history" element={<Dashboard />} />
           <Route path="/debug" element={<Dashboard />} />
-          {/* Redirect to dashboard as default route */}
+          
+          {/* Default route */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        
+        {/* KonyaKart stilinde Toast Container - Dark mode destekli */}
+        <ToastContainer 
+          position="top-right" 
+          autoClose={4000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          toastClassName="!bg-white dark:!bg-gray-800 !shadow-lg !rounded-xl !border !border-gray-200 dark:!border-gray-600"
+          bodyClassName="!text-gray-800 dark:!text-gray-200 !font-medium"
+          progressClassName="!bg-[#005bac]"
+          theme="colored"
+        />
       </Router>
-      <ToastContainer 
-        position="top-right" 
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
-    </ThemeProvider>
+    </div>
   );
 }
 
