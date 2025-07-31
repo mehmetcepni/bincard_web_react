@@ -1193,3 +1193,93 @@ h3 {
   color: #9ca3af;
   border-left-color: #2c7bc7;
 }
+
+/* Nokta navigasyon için özel animasyonlar - TUSAŞ stilinde */
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* TUSAŞ stilinde nokta navigasyon */
+.dot-navigation button {
+  position: relative;
+  overflow: visible;
+}
+
+.dot-navigation button::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.dot-navigation button:hover::before {
+  background: rgba(0, 91, 172, 0.1);
+  transform: scale(1.5);
+}
+
+/* Aktif nokta için özel animasyon */
+.dot-navigation button[data-active="true"] {
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+/* Bağlantı çizgileri için animasyon */
+.dot-navigation .connection-line {
+  transition: all 0.3s ease;
+}
+
+.dot-navigation:hover .connection-line {
+  background-color: rgba(0, 91, 172, 0.3);
+}
+
+/* Responsive nokta navigasyon */
+@media (max-width: 1024px) {
+  .dot-navigation {
+    display: none !important;
+  }
+}
+
+/* Mobil navigasyon için ek efektler */
+.mobile-nav-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-nav-button:active {
+  transform: scale(0.95);
+}
+
+/* Smooth scroll behavior - Yavaş ve akıcı geçişler */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Section geçiş efektleri */
+section {
+  scroll-margin-top: 2rem;
+}
+
+/* Mouse wheel navigasyonu için özel CSS */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Özel scroll timing için */
+  * {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Body padding for mobile navigation */
+@media (max-width: 1024px) {
+  body {
+    padding-bottom: 5rem;
+  }
+}

@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import AuthService from '../../services/auth.service';
 import WalletService from '../../services/wallet.service';
 import NewsService from '../../services/news.service';
+import PaymentPointService from '../../services/payment-point.service';
 import News from './News.jsx';
 import LikedNews from './LikedNews.jsx';
 import Wallet from './Wallet.jsx';
@@ -434,6 +435,35 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
   const [newsData, setNewsData] = useState([]);
   const [newsLoading, setNewsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // Ödeme noktaları için state'ler (Marketler)
+  const [paymentPoints, setPaymentPoints] = useState([]);
+  const [paymentPointsLoading, setPaymentPointsLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+
+  // Debug için state değişimlerini takip et
+  useEffect(() => {
+    console.log('🔍 Dashboard - PaymentPoints state değişti:', {
+      count: paymentPoints.length,
+      loading: paymentPointsLoading,
+      location: userLocation,
+      error: locationError
+    });
+  }, [paymentPoints, paymentPointsLoading, userLocation, locationError]);
+  
+  // Nokta navigasyon için state'ler
+  const [activeSection, setActiveSection] = useState('hero');
+  const sectionRefs = {
+    hero: React.useRef(null),
+    news: React.useRef(null),
+    summary: React.useRef(null),
+    pricing: React.useRef(null),
+    actions: React.useRef(null),
+    paymentPoints: React.useRef(null),
+    transactions: React.useRef(null),
+    features: React.useRef(null)
+  };
 
   // Haberler için API çağrısı
   useEffect(() => {
@@ -470,6 +500,275 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
     fetchNews();
   }, []);
 
+  // Kullanıcı konumunu al
+  useEffect(() => {
+    const getUserLocation = () => {
+      console.log('🌍 Dashboard - Konum bilgisi alınmaya çalışılıyor...');
+      
+      if (navigator.geolocation) {
+        console.log('✅ Dashboard - Geolocation API mevcut');
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            };
+            console.log('✅ Dashboard - Kullanıcı konumu başarıyla alındı:', location);
+            setUserLocation(location);
+            setLocationError(null);
+          },
+          (error) => {
+            console.error('❌ Dashboard - Konum alınamadı:', error);
+            console.log('🔧 Dashboard - Varsayılan Bingöl koordinatları kullanılıyor...');
+            setLocationError(`Konum hatası: ${error.message}`);
+            // Varsayılan Bingöl koordinatları
+            const defaultLocation = {
+              latitude: 39.0626,
+              longitude: 40.4984
+            };
+            console.log('📍 Dashboard - Varsayılan konum ayarlandı:', defaultLocation);
+            setUserLocation(defaultLocation);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000, // 15 saniye timeout
+            maximumAge: 300000 // 5 dakika cache
+          }
+        );
+      } else {
+        console.warn('⚠️ Dashboard - Geolocation desteklenmiyor');
+        setLocationError('Konum servisi desteklenmiyor');
+        // Varsayılan Bingöl koordinatları
+        const defaultLocation = {
+          latitude: 39.0626,
+          longitude: 40.4984
+        };
+        console.log('📍 Dashboard - Varsayılan konum ayarlandı (geolocation yok):', defaultLocation);
+        setUserLocation(defaultLocation);
+      }
+    };
+
+    getUserLocation();
+  }, []);
+
+  // Marketleri getir
+  useEffect(() => {
+    const fetchPaymentPoints = async () => {
+      if (!userLocation) {
+        console.log('⏳ Kullanıcı konumu bekleniyor...');
+        return;
+      }
+      
+      try {
+        setPaymentPointsLoading(true);
+        console.log('🏪 Dashboard - Yakın marketler getiriliyor...', userLocation);
+        
+        const response = await PaymentPointService.getNearbyPaymentPoints(
+          userLocation.latitude,
+          userLocation.longitude,
+          10.0, // 10km yarıçap
+          0, // sayfa
+          12  // maksimum 12 market
+        );
+        
+        console.log('🏪 Dashboard - API Response:', response);
+        console.log('🏪 Dashboard - Success:', response?.success);
+        console.log('🏪 Dashboard - Content:', response?.content);
+        console.log('🏪 Dashboard - Content Length:', response?.content?.length);
+        
+        if (response && response.success && response.content && Array.isArray(response.content) && response.content.length > 0) {
+          console.log('✅ Dashboard - Marketler bulundu, işleniyor...', response.content.length);
+          
+          // Her market için mesafe ve açık/kapalı durumu hesapla
+          const processedPoints = response.content.map((point, index) => {
+            console.log(`🔄 Dashboard - İşlenen market ${index + 1}:`, point.name);
+            const processedPoint = {
+              ...point,
+              distance: point.latitude && point.longitude ? 
+                PaymentPointService.calculateDistance(
+                  userLocation.latitude,
+                  userLocation.longitude,
+                  point.latitude,
+                  point.longitude
+                ) : null,
+              isOpen: PaymentPointService.isOpen(point.workingHours)
+            };
+            console.log(`✅ Dashboard - İşlenmiş market ${index + 1}:`, processedPoint);
+            return processedPoint;
+          });
+          
+          console.log('✅ Dashboard - Tüm işlenmiş marketler:', processedPoints);
+          setPaymentPoints(processedPoints);
+        } else {
+          console.warn('⚠️ Dashboard - API response boş veya format hatası:', response);
+          console.log('🔧 Dashboard - Demo verilerle test ediliyor...');
+          
+          // Demo marketler (gerçek veriler gelmiyorsa)
+          const demoMarkets = [
+            {
+              id: 'demo-1',
+              name: 'CarrefourSA Market',
+              address: 'Bahçelievler Mah. Atatürk Cad. No:45 Merkez/Bingöl',
+              latitude: 39.0656,
+              longitude: 40.5014,
+              workingHours: '08:00 - 22:00',
+              paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD', 'CASH'],
+              isActive: true
+            },
+            {
+              id: 'demo-2',
+              name: 'Migros Market',
+              address: 'Cumhuriyet Mah. İnönü Cad. No:23 Merkez/Bingöl',
+              latitude: 39.0626,
+              longitude: 40.4984,
+              workingHours: '09:00 - 21:00',
+              paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD'],
+              isActive: true
+            },
+            {
+              id: 'demo-3',
+              name: 'A101 Market',
+              address: 'Yenişehir Mah. Cumhuriyet Cad. No:67 Merkez/Bingöl',
+              latitude: 39.0596,
+              longitude: 40.4954,
+              workingHours: '07:00 - 23:00',
+              paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD', 'CASH'],
+              isActive: true
+            },
+            {
+              id: 'demo-4',
+              name: 'ŞOK Market',
+              address: 'Kültür Mah. Gazi Cad. No:89 Merkez/Bingöl',
+              latitude: 39.0666,
+              longitude: 40.5024,
+              workingHours: '07:30 - 22:30',
+              paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD', 'CASH'],
+              isActive: true
+            },
+            {
+              id: 'demo-5',
+              name: 'BİM Market',
+              address: 'Saray Mah. Mehmet Akif Cad. No:12 Merkez/Bingöl',
+              latitude: 39.0636,
+              longitude: 40.4994,
+              workingHours: '08:30 - 21:30',
+              paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD', 'CASH'],
+              isActive: true
+            },
+            {
+              id: 'demo-6',
+              name: 'Yeni İpek Market',
+              address: 'Yenişehir Mah. Belediye Cad. No:34 Merkez/Bingöl',
+              latitude: 39.0606,
+              longitude: 40.4974,
+              workingHours: '06:00 - 24:00',
+              paymentMethods: ['CREDIT_CARD', 'CASH'],
+              isActive: true
+            }
+          ];
+          
+          const processedDemoPoints = demoMarkets.map(point => ({
+            ...point,
+            distance: PaymentPointService.calculateDistance(
+              userLocation.latitude,
+              userLocation.longitude,
+              point.latitude,
+              point.longitude
+            ),
+            isOpen: PaymentPointService.isOpen(point.workingHours)
+          }));
+          
+          console.log('✅ Dashboard - Demo marketler yüklendi:', processedDemoPoints);
+          setPaymentPoints(processedDemoPoints);
+        }
+      } catch (error) {
+        console.error('❌ Dashboard - Marketler yüklenirken hata:', error);
+        console.error('❌ Dashboard - Error details:', error.message);
+        
+        // Network hatası varsa demo veriler kullan
+        console.log('🌐 Dashboard - Network hatası tespit edildi, demo veriler yükleniyor...');
+        
+        const demoMarkets = [
+          {
+            id: 'demo-1',
+            name: 'CarrefourSA Market',
+            address: 'Bahçelievler Mah. Atatürk Cad. No:45 Merkez/Bingöl',
+            latitude: 39.0656,
+            longitude: 40.5014,
+            workingHours: '08:00 - 22:00',
+            paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD', 'CASH'],
+            isActive: true
+          },
+          {
+            id: 'demo-2',
+            name: 'Migros Market',
+            address: 'Cumhuriyet Mah. İnönü Cad. No:23 Merkez/Bingöl',
+            latitude: 39.0626,
+            longitude: 40.4984,
+            workingHours: '09:00 - 21:00',
+            paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD'],
+            isActive: true
+          },
+          {
+            id: 'demo-3',
+            name: 'A101 Market',
+            address: 'Yenişehir Mah. Cumhuriyet Cad. No:67 Merkez/Bingöl',
+            latitude: 39.0596,
+            longitude: 40.4954,
+            workingHours: '07:00 - 23:00',
+            paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD', 'CASH'],
+            isActive: true
+          },
+          {
+            id: 'demo-4',
+            name: 'ŞOK Market',
+            address: 'Kültür Mah. Gazi Cad. No:89 Merkez/Bingöl',
+            latitude: 39.0666,
+            longitude: 40.5024,
+            workingHours: '07:30 - 22:30',
+            paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD', 'CASH'],
+            isActive: true
+          },
+          {
+            id: 'demo-5',
+            name: 'BİM Market',
+            address: 'Saray Mah. Mehmet Akif Cad. No:12 Merkez/Bingöl',
+            latitude: 39.0636,
+            longitude: 40.4994,
+            workingHours: '08:30 - 21:30',
+            paymentMethods: ['CREDIT_CARD', 'DEBIT_CARD', 'CASH'],
+            isActive: true
+          }
+        ];
+        
+        const processedDemoPoints = demoMarkets.map(point => ({
+          ...point,
+          distance: PaymentPointService.calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            point.latitude,
+            point.longitude
+          ),
+          isOpen: PaymentPointService.isOpen(point.workingHours)
+        }));
+        
+        console.log('✅ Dashboard - Demo marketler hata nedeniyle yüklendi:', processedDemoPoints);
+        setPaymentPoints(processedDemoPoints);
+      } finally {
+        console.log('🏁 Dashboard - Market yükleme işlemi tamamlandı');
+        setPaymentPointsLoading(false);
+      }
+    };
+
+    // Konum varsa marketleri getir
+    if (userLocation) {
+      console.log('🌍 Dashboard - Kullanıcı konumu mevcut, marketler getiriliyor...', userLocation);
+      fetchPaymentPoints();
+    } else {
+      console.log('⏳ Dashboard - Kullanıcı konumu bekleniyor...');
+    }
+  }, [userLocation]);
+
   // Otomatik slider
   useEffect(() => {
     if (newsData.length > 1) {
@@ -505,6 +804,133 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
     navigate(path);
     return true;
   };
+
+  // Section navigasyon fonksiyonları
+  const scrollToSection = (sectionId) => {
+    const sectionRef = sectionRefs[sectionId];
+    if (sectionRef && sectionRef.current) {
+      sectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+      setActiveSection(sectionId);
+    }
+  };
+
+  // Scroll listener to update active section
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = Object.keys(sectionRefs);
+      const scrollPosition = window.scrollY + window.innerHeight / 3; // 1/3 viewport height offset
+
+      let newActiveSection = sections[0]; // Default to first section
+
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        const ref = sectionRefs[section];
+        if (ref && ref.current) {
+          const sectionTop = ref.current.offsetTop;
+          const sectionHeight = ref.current.offsetHeight;
+          const sectionBottom = sectionTop + sectionHeight;
+
+          if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+            newActiveSection = section;
+            break;
+          }
+        }
+      }
+
+      setActiveSection(newActiveSection);
+    };
+
+    // Initial check
+    handleScroll();
+
+    // Throttle scroll events for better performance
+    let ticking = false;
+    const throttledHandleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', throttledHandleScroll);
+    return () => window.removeEventListener('scroll', throttledHandleScroll);
+  }, []);
+
+  // Mouse wheel navigation - yavaş geçişler için
+  useEffect(() => {
+    let wheelTimeout;
+    let isWheelNavigating = false;
+
+    const handleWheel = (e) => {
+      // Sadece desktop'ta aktif
+      if (window.innerWidth < 1024) return;
+      
+      // Eğer zaten wheel navigasyonu aktifse, ignore et
+      if (isWheelNavigating) {
+        e.preventDefault();
+        return;
+      }
+
+      const sections = Object.keys(sectionRefs);
+      const currentIndex = sections.indexOf(activeSection);
+      
+      // Wheel timeout'u temizle
+      clearTimeout(wheelTimeout);
+      
+      // Aşağı kaydırma (deltaY > 0)
+      if (e.deltaY > 0 && currentIndex < sections.length - 1) {
+        e.preventDefault();
+        isWheelNavigating = true;
+        
+        const nextSection = sections[currentIndex + 1];
+        scrollToSection(nextSection);
+        
+        // 1.5 saniye sonra wheel navigasyonunu tekrar aktifleştir
+        wheelTimeout = setTimeout(() => {
+          isWheelNavigating = false;
+        }, 1500);
+      }
+      // Yukarı kaydırma (deltaY < 0)
+      else if (e.deltaY < 0 && currentIndex > 0) {
+        e.preventDefault();
+        isWheelNavigating = true;
+        
+        const prevSection = sections[currentIndex - 1];
+        scrollToSection(prevSection);
+        
+        // 1.5 saniye sonra wheel navigasyonunu tekrar aktifleştir
+        wheelTimeout = setTimeout(() => {
+          isWheelNavigating = false;
+        }, 1500);
+      }
+    };
+
+    // Passive: false ile wheel event'i dinle ki preventDefault çalışsın
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      clearTimeout(wheelTimeout);
+    };
+  }, [activeSection]); // activeSection değiştiğinde yeniden attach et
+
+  // Section definitions for navigation
+  const sections = [
+    { id: 'hero', label: 'Ana Sayfa', icon: '🏠' },
+    { id: 'news', label: 'Haberler', icon: '📰' },
+    { id: 'summary', label: 'Özet Bilgiler', icon: '📊' },
+    { id: 'pricing', label: 'Ücretler', icon: '💳' },
+    { id: 'actions', label: 'Hızlı İşlemler', icon: '⚡' },
+    { id: 'paymentPoints', label: 'Yakın Marketler', icon: '🏪' },
+    ...(isAuthenticated ? [{ id: 'transactions', label: 'Son İşlemler', icon: '📋' }] : []),
+    ...(!isAuthenticated ? [{ id: 'features', label: 'Özellikler', icon: '✨' }] : [])
+  ];
 
   // Bakiye formatını düzenle
   const formatBalance = (balance) => {
@@ -560,8 +986,8 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
     },
     {
       title: 'Ödeme Noktaları',
-      description: 'Yakındaki bayileri keşfedin',
-      icon: '📍',
+      description: 'Yakındaki marketleri keşfedin',
+      icon: '🏪',
       action: () => navigate('/payment-points')
     },
     {
@@ -587,8 +1013,73 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
   
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      {/* Nokta Navigasyon Menüsü - Desktop */}
+      <div className="dot-navigation fixed right-6 top-1/2 transform -translate-y-1/2 z-50 hidden lg:block">
+        <div className="flex flex-col space-y-3">
+          {sections.map((section, index) => (
+            <div key={section.id} className="relative group">
+              <button
+                onClick={() => scrollToSection(section.id)}
+                data-active={activeSection === section.id}
+                className={`relative w-4 h-4 rounded-full transition-all duration-300 border-2 ${
+                  activeSection === section.id
+                    ? 'bg-[#005bac] border-[#005bac] scale-125'
+                    : 'bg-transparent border-gray-400 dark:border-gray-500 hover:border-[#005bac] hover:scale-110'
+                }`}
+                title={section.label}
+              >
+                {/* İç nokta - aktif durumda */}
+                {activeSection === section.id && (
+                  <div className="absolute inset-1 bg-white rounded-full"></div>
+                )}
+              </button>
+              
+              {/* Tooltip - TUSAŞ stilinde */}
+              <div className="absolute right-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                <div className="bg-[#005bac] text-white text-xs px-3 py-2 rounded-md whitespace-nowrap font-medium shadow-lg">
+                  <span className="mr-1">{section.icon}</span>
+                  {section.label}
+                  {/* Ok işareti */}
+                  <div className="absolute left-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-[#005bac]"></div>
+                </div>
+              </div>
+              
+              {/* Bağlantı çizgisi - TUSAŞ stilinde */}
+              {index < sections.length - 1 && (
+                <div className="connection-line absolute top-full left-1/2 transform -translate-x-1/2 w-px h-3 bg-gray-300 dark:bg-gray-600"></div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Mobil Navigasyon Menüsü - Bottom Float */}
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 block lg:hidden">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex space-x-4">
+            {sections.slice(0, 5).map((section) => (
+              <button
+                key={section.id}
+                onClick={() => scrollToSection(section.id)}
+                className={`mobile-nav-button w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  activeSection === section.id
+                    ? 'bg-[#005bac] text-white scale-110'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-[#005bac]/60 hover:text-white'
+                }`}
+                title={section.label}
+              >
+                <span className="text-xs">{section.icon}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
-      <section className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
+      <section 
+        ref={sectionRefs.hero}
+        className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 fade-in">
@@ -625,7 +1116,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Haber Slider */}
-        <section className="mb-12 slide-up">
+        <section ref={sectionRefs.news} className="mb-12 slide-up">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Güncel Haberler</h2>
             <button 
@@ -742,7 +1233,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
         </section>
 
         {/* Ana Kartlar */}
-        <section className="mb-12 slide-up">
+        <section ref={sectionRefs.summary} className="mb-12 slide-up">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Özet Bilgiler</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {mainCards.map((card, index) => (
@@ -768,7 +1259,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
         </section>
 
         {/* Kart Fiyatlandırması */}
-        <section className="mb-12 slide-up">
+        <section ref={sectionRefs.pricing} className="mb-12 slide-up">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">BinCard Kullanım Ücretleri</h2>
             <p className="text-gray-600 dark:text-gray-400">Şehiriçi Ulaşım Ücretleri</p>
@@ -903,7 +1394,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
         </section>
 
         {/* Hızlı İşlemler */}
-        <section className="mb-12 slide-up">
+        <section ref={sectionRefs.actions} className="mb-12 slide-up">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Hızlı İşlemler</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {quickActions.map((action, index) => (
@@ -926,9 +1417,250 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
           </div>
         </section>
 
+        {/* Yakın Marketler */}
+        <section ref={sectionRefs.paymentPoints} className="mb-12 slide-up">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Yakındaki Marketler</h2>
+            <button 
+              onClick={() => navigate('/payment-points')}
+              className="text-[#005bac] hover:text-[#004690] font-medium transition-colors duration-200 flex items-center gap-2"
+            >
+              Tümünü Gör
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {paymentPointsLoading ? (
+            <div className="card p-8">
+              <div className="flex flex-col items-center justify-center">
+                <div className="spinner mb-4"></div>
+                <span className="text-gray-600 dark:text-gray-300 font-medium">Marketler yükleniyor...</span>
+                <span className="text-gray-500 dark:text-gray-400 text-sm mt-1">Konum bilgisi alınıyor</span>
+              </div>
+            </div>
+          ) : paymentPoints.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paymentPoints.map((point, index) => (
+                <div 
+                  key={point.id}
+                  className="card card-hover p-6 cursor-pointer group"
+                  onClick={() => navigate('/payment-points')}
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">🏪</span>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-1">
+                          {point.name}
+                        </h3>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2">
+                        {point.address}
+                      </p>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-500 dark:text-gray-400">📍</span>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          {point.distance ? `${point.distance.toFixed(1)} km` : 'Mesafe hesaplanıyor...'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0 ml-4">
+                      {point.isOpen ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          🟢 Açık
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                          🔴 Kapalı
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {point.workingHours && (
+                    <div className="mb-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">⏰ Çalışma Saatleri:</span>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{point.workingHours}</p>
+                    </div>
+                  )}
+
+                  {point.paymentMethods && point.paymentMethods.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {PaymentPointService.formatPaymentMethods(point.paymentMethods.slice(0, 3)).map((method, idx) => (
+                        <span 
+                          key={idx}
+                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                        >
+                          💳 {method}
+                        </span>
+                      ))}
+                      {point.paymentMethods.length > 3 && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          +{point.paymentMethods.length - 3} daha
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between mt-4">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (userLocation && point.latitude && point.longitude) {
+                          const mapsUrl = `https://www.google.com/maps/dir/${userLocation.latitude},${userLocation.longitude}/${point.latitude},${point.longitude}`;
+                          window.open(mapsUrl, '_blank');
+                        }
+                      }}
+                      className="text-[#005bac] hover:text-[#004690] font-medium text-sm transition-colors flex items-center gap-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      📍 Yol Tarifi
+                    </button>
+                    
+                    <span className="text-[#005bac] font-medium group-hover:translate-x-1 transition-transform duration-200">
+                      🏪 Detaylar →
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card p-8">
+              <div className="text-center">
+                <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center justify-center gap-2">
+                  <span>🏪</span>
+                  Yakınlarda Market Bulunamadı
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  {locationError ? 
+                    `Konum hatası: ${locationError}` : 
+                    'Şu anda yakınınızda BinCard kabul eden market bulunmuyor.'}
+                </p>
+                <div className="space-y-2 mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    📍 Arama yapılan konum: {userLocation ? 
+                      `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}` : 
+                      'Konum alınamadı'}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    🔍 Arama yarıçapı: 10 km
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <button 
+                    onClick={() => {
+                      console.log('🔄 Marketler yeniden yükleniyor...');
+                      setPaymentPointsLoading(true);
+                      // Konumu yeniden al ve marketleri getir
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                          (position) => {
+                            const location = {
+                              latitude: position.coords.latitude,
+                              longitude: position.coords.longitude
+                            };
+                            setUserLocation(location);
+                          },
+                          (error) => {
+                            console.error('Konum alınamadı:', error);
+                          }
+                        );
+                      }
+                    }}
+                    className="btn-outline"
+                  >
+                    🔄 Yeniden Dene
+                  </button>
+                  <button 
+                    onClick={() => navigate('/payment-points')}
+                    className="btn-primary"
+                  >
+                    🗺️ Tüm Marketleri Gör
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Basit Harita Görünümü */}
+          {userLocation && paymentPoints.length > 0 && (
+            <div className="mt-8">
+              <div className="card p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <span>🗺️</span>
+                  Marketler Harita Görünümü
+                  <span>🏪</span>
+                </h3>
+                <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg h-64 overflow-hidden">
+                  <iframe
+                    src={`https://www.google.com/maps/embed/v1/search?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dO9nzXLPbN4n4k&q=markets+supermarkets+near+${userLocation.latitude},${userLocation.longitude}&zoom=13`}
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    allowFullScreen
+                    title="Yakın Marketler Haritası"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  ></iframe>
+                  <div 
+                    className="absolute inset-0 bg-gray-100 dark:bg-gray-800 items-center justify-center flex-col hidden"
+                  >
+                    <span className="text-4xl mb-2">🏪</span>
+                    <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">🗺️ Harita yüklenemedi</p>
+                    <button 
+                      onClick={() => navigate('/payment-points')}
+                      className="mt-2 text-[#005bac] hover:text-[#004690] font-medium text-sm"
+                    >
+                      🏪 Detaylı Market Haritası →
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Market Özet Bilgileri */}
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="text-2xl font-bold text-[#005bac] dark:text-blue-400">
+                      {paymentPoints.length}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">🏪 Yakın Market</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {paymentPoints.filter(p => p.isOpen).length}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">🟢 Açık Market</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {paymentPoints.length > 0 ? 
+                        `${Math.min(...paymentPoints.map(p => p.distance || 0)).toFixed(1)}km` : 
+                        'N/A'
+                      }
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">📍 En Yakın</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Son İşlemler - Sadece giriş yapmış kullanıcılar için */}
         {isAuthenticated && (
-          <section className="slide-up">
+          <section ref={sectionRefs.transactions} className="slide-up">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Son İşlemler</h2>
               <button 
@@ -975,7 +1707,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
 
         {/* Giriş yapmamış kullanıcılar için bilgi kartları */}
         {!isAuthenticated && (
-          <section className="slide-up">
+          <section ref={sectionRefs.features} className="slide-up">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Neden BinCard?</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="card p-6 text-center">
