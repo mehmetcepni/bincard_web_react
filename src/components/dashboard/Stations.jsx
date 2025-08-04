@@ -12,6 +12,7 @@ const Stations = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSuggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [activeTab, setActiveTab] = useState('nearby'); // 'nearby', 'favorites', 'search'
   const [selectedStation, setSelectedStation] = useState(null);
   const [stationRoutes, setStationRoutes] = useState([]);
@@ -135,6 +136,7 @@ const Stations = () => {
   const fetchSearchSuggestions = useCallback(async (query) => {
     if (!query.trim() || query.length < 2) {
       setSuggestions([]);
+      setSelectedSuggestionIndex(-1);
       return;
     }
 
@@ -142,10 +144,29 @@ const Stations = () => {
       const result = await StationService.getSearchKeywords(query);
       
       if (result.success) {
-        setSuggestions(Array.from(result.data || []));
+        // Önerileri filtrele ve sırala
+        const suggestions = Array.from(result.data || [])
+          .filter(suggestion => suggestion.toLowerCase().includes(query.toLowerCase()))
+          .sort((a, b) => {
+            // Başlangıçta eşleşenler önce gelsin
+            const aStartsWith = a.toLowerCase().startsWith(query.toLowerCase());
+            const bStartsWith = b.toLowerCase().startsWith(query.toLowerCase());
+            
+            if (aStartsWith && !bStartsWith) return -1;
+            if (!aStartsWith && bStartsWith) return 1;
+            
+            // Alfabetik sıralama
+            return a.localeCompare(b, 'tr');
+          })
+          .slice(0, 5); // Maksimum 5 öneri
+          
+        setSuggestions(suggestions);
+        setSelectedSuggestionIndex(-1);
       }
     } catch (error) {
       console.error('[STATIONS] Öneri getirme hatası:', error);
+      setSuggestions([]);
+      setSelectedSuggestionIndex(-1);
     }
   }, []);
 
@@ -160,14 +181,65 @@ const Stations = () => {
     } else {
       setShowSuggestions(false);
       setSuggestions([]);
+      setSelectedSuggestionIndex(-1);
     }
+  };
+
+  // Klavye navigasyonu
+  const handleKeyDown = (e) => {
+    if (!showSuggestions || searchSuggestions.length === 0) {
+      if (e.key === 'Enter') {
+        handleSearch();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev < searchSuggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev > 0 ? prev - 1 : searchSuggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSuggestionIndex >= 0) {
+          const selectedSuggestion = searchSuggestions[selectedSuggestionIndex];
+          setSearchQuery(selectedSuggestion);
+          handleSearch(selectedSuggestion);
+        } else {
+          handleSearch();
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        break;
+    }
+  };
+
+  // Öneri seçimi
+  const selectSuggestion = (suggestion) => {
+    setSearchQuery(suggestion);
+    setShowSuggestions(false);
+    setSelectedSuggestionIndex(-1);
+    handleSearch(suggestion);
   };
 
   // Arama başlat
   const handleSearch = (query = searchQuery) => {
+    if (!query.trim()) return;
+    
     setActiveTab('search');
     setCurrentPage(0);
     setShowSuggestions(false);
+    setSelectedSuggestionIndex(-1);
     searchStations(query);
   };
 
@@ -326,11 +398,26 @@ const Stations = () => {
           <div className="relative">
             <input
               type="text"
-              placeholder="Durak ara..."
+              placeholder="Durak ara... (örn: Alaaddin, Meram, Konya)"
               value={searchQuery}
               onChange={handleSearchChange}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                if (searchQuery.trim() && searchSuggestions.length > 0) {
+                  setShowSuggestions(true);
+                }
+              }}
+              onBlur={(e) => {
+                // Öneri tıklamasını beklemek için gecikme
+                setTimeout(() => {
+                  if (!e.relatedTarget?.closest('.suggestions-dropdown')) {
+                    setShowSuggestions(false);
+                    setSelectedSuggestionIndex(-1);
+                  }
+                }, 150);
+              }}
+              className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              autoComplete="off"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -339,13 +426,13 @@ const Stations = () => {
             </div>
             <button
               onClick={() => handleSearch()}
-              disabled={searchLoading}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              disabled={searchLoading || !searchQuery.trim()}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {searchLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
               ) : (
-                <svg className="h-5 w-5 text-blue-600 hover:text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5 text-blue-600 hover:text-blue-700 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               )}
@@ -354,19 +441,71 @@ const Stations = () => {
           
           {/* Arama Önerileri */}
           {showSuggestions && searchSuggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {searchSuggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setSearchQuery(suggestion);
-                    handleSearch(suggestion);
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                >
-                  {suggestion}
-                </button>
-              ))}
+            <div className="suggestions-dropdown absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div className="py-1">
+                {searchSuggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => selectSuggestion(suggestion)}
+                    className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors flex items-center gap-3 ${
+                      index === selectedSuggestionIndex ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                    }`}
+                  >
+                    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">
+                        {suggestion.split(new RegExp(`(${searchQuery})`, 'gi')).map((part, i) => (
+                          <span key={i} className={
+                            part.toLowerCase() === searchQuery.toLowerCase() 
+                              ? 'bg-yellow-200 text-yellow-800' 
+                              : ''
+                          }>
+                            {part}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <svg className="h-4 w-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Klavye kısayol ipucu */}
+              <div className="border-t border-gray-100 px-4 py-2 bg-gray-50 text-xs text-gray-500">
+                ↑↓ Gezin • Enter Seç • Esc Kapat
+              </div>
+            </div>
+          )}
+          
+          {/* Popüler Aramalar */}
+          {!searchQuery && !showSuggestions && (
+            <div className="mt-3">
+              <p className="text-sm text-gray-600 mb-2">Popüler aramalar:</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  'Alaaddin Keykubat',
+                  'Meram',
+                  'Karatay',
+                  'Selçuklu',
+                  'Yeni Terminal',
+                  'Konya Tren Garı'
+                ].map((keyword, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setSearchQuery(keyword);
+                      handleSearch(keyword);
+                    }}
+                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                  >
+                    {keyword}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
