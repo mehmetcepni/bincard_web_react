@@ -10,6 +10,7 @@ import News from './News.jsx';
 import LikedNews from './LikedNews.jsx';
 import Wallet from './Wallet.jsx';
 import Stations from './Stations.jsx';
+import Routes from './Routes.jsx';
 import Feedback from './Feedback.jsx';
 import PaymentPoints from './PaymentPoints.jsx';
 import Settings from './Settings.jsx';
@@ -21,6 +22,7 @@ const menuItems = [
   { text: 'Ana Sayfa', icon: '🏠', path: 'dashboard', key: 'dashboard' },
   { text: 'Cüzdan', icon: '💳', path: 'wallet', key: 'wallet' },
   { text: 'Duraklar', icon: '🚏', path: 'routes', key: 'routes' },
+  { text: 'Rotalar', icon: '🚌', path: 'bus-routes', key: 'bus-routes' },
   { text: 'Ödeme Noktaları', icon: '📍', path: 'payment-points', key: 'payment-points' },
   { text: 'İşlem Geçmişi', icon: '📋', path: 'history', key: 'history' },
   { text: 'Haberler', icon: '📰', path: 'news', key: 'news' },
@@ -155,6 +157,8 @@ const Dashboard = () => {
         return <Wallet />;
       case 'routes':
         return <Stations />;
+      case 'bus-routes':
+        return <Routes />;
       case 'feedback':
         return <Feedback />;
       case 'payment-points':
@@ -1446,7 +1450,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
             </div>
           ) : paymentPoints.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paymentPoints.map((point, index) => (
+              {paymentPoints.slice(0, 3).map((point, index) => (
                 <div 
                   key={point.id}
                   className="card card-hover p-6 cursor-pointer group"

@@ -47,6 +47,7 @@ function App() {
           <Route path="/news" element={<Dashboard />} />
           <Route path="/liked-news" element={<Dashboard />} />
           <Route path="/routes" element={<Dashboard />} />
+          <Route path="/bus-routes" element={<Dashboard />} />
           <Route path="/cards" element={<Dashboard />} />
           <Route path="/wallet" element={<Dashboard />} />
           <Route path="/payment-points" element={<Dashboard />} />
