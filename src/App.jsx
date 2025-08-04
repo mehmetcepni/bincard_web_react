@@ -9,6 +9,7 @@ import Register from './components/auth/Register';
 import ForgotPassword from './components/auth/ForgotPassword';
 import ResetPassword from './components/auth/ResetPassword';
 import Dashboard from './components/dashboard/Dashboard';
+import BalanceTopUp from './components/dashboard/BalanceTopUp';
 
 // Router future flags
 const routerFutureConfig = {
@@ -53,6 +54,9 @@ function App() {
           <Route path="/settings" element={<Dashboard />} />
           <Route path="/history" element={<Dashboard />} />
           <Route path="/debug" element={<Dashboard />} />
+          
+          {/* Balance Top Up - Separate page */}
+          <Route path="/balance-topup" element={<BalanceTopUp />} />
           
           {/* Default route */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -221,12 +221,16 @@ h3 {
 }
 
 /* Smooth animations */
-.fade-in {
+.fade-in, .animate-fade-in {
   animation: fadeIn 0.6s ease-in-out;
 }
 
-.slide-up {
+.slide-up, .animate-slide-up {
   animation: slideUp 0.6s ease-out;
+}
+
+.slide-down, .animate-slide-down {
+  animation: slideDown 0.6s ease-out;
 }
 
 @keyframes fadeIn {
@@ -244,6 +248,17 @@ h3 {
   from {
     opacity: 0;
     transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
   }
   to {
     opacity: 1;

@@ -37,10 +37,6 @@ const Wallet = () => {
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [topUpAmount, setTopUpAmount] = useState('');
-  const [cardInfo, setCardInfo] = useState({ cardNumber: '', cardHolder: '', expireMonth: '', expireYear: '', cvc: '' });
-  const [isTopUpLoading, setIsTopUpLoading] = useState(false);
-  const [showTopUpForm, setShowTopUpForm] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -74,25 +70,6 @@ const Wallet = () => {
     };
     fetchWallet();
   }, []);
-
-  const handleTopUp = async (e) => {
-    e.preventDefault();
-    setIsTopUpLoading(true);
-    try {
-      const result = await WalletService.topUpWallet({ amount: topUpAmount, cardInfo });
-      toast.success(result.message || '3D doğrulama başlatıldı. Yönlendirme yapılıyor.');
-      if (result.data && result.data.startsWith('<!doctype html')) {
-        const win = window.open('', '_blank');
-        win.document.open();
-        win.document.write(result.data);
-        win.document.close();
-      }
-    } catch (err) {
-      toast.error(err.message || 'Para yükleme işlemi başarısız.');
-    } finally {
-      setIsTopUpLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -141,7 +118,7 @@ const Wallet = () => {
             </div>
             <div className="flex flex-col gap-3 items-end">
               <button
-                onClick={() => setShowTopUpForm(true)}
+                onClick={() => navigate('/balance-topup')}
                 className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white font-semibold px-6 py-3 rounded-2xl shadow transition text-base backdrop-blur-md"
               >
                 <span className="text-2xl">➕</span>
@@ -157,81 +134,6 @@ const Wallet = () => {
             </div>
           </div>
         </div>
-
-        {/* Para Yükleme Formu */}
-        {showTopUpForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="relative max-w-xl w-full mx-4 bg-white/90 rounded-3xl shadow-2xl p-8 border border-blue-100 animate-fade-in">
-              <button
-                type="button"
-                onClick={() => setShowTopUpForm(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl font-bold focus:outline-none"
-                aria-label="Kapat"
-              >
-                ×
-              </button>
-              <form onSubmit={handleTopUp} className="space-y-6">
-                <h2 className="text-2xl font-bold text-blue-700 mb-2 flex items-center gap-2"><span>➕</span>Cüzdana Para Yükle</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Tutar (₺)</label>
-                    <input type="number" min="1" step="0.01" value={topUpAmount} onChange={e => setTopUpAmount(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg bg-white" required disabled={isTopUpLoading} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Kart Numarası</label>
-                    <input type="text" maxLength={16} value={cardInfo.cardNumber} onChange={e => {
-                      const value = e.target.value;
-                      if (/^\d*$/.test(value)) {
-                        setCardInfo({ ...cardInfo, cardNumber: value });
-                      }
-                    }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg bg-white" required disabled={isTopUpLoading} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Kart Sahibi</label>
-                    <input type="text" value={cardInfo.cardHolder} onChange={e => {
-                      const value = e.target.value;
-                      // Sadece harf (Türkçe dahil) ve boşluk karakterlerini kabul et
-                      if (/^[a-zA-ZçÇğĞıİöÖşŞüÜ\s]*$/.test(value)) {
-                        setCardInfo({ ...cardInfo, cardHolder: value });
-                      }
-                    }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg bg-white" required disabled={isTopUpLoading} />
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="w-1/2">
-                      <label className="block text-sm font-medium mb-1 text-gray-700">SKT Ay</label>
-                      <input type="text" maxLength={2} value={cardInfo.expireMonth} onChange={e => {
-                        const value = e.target.value;
-                        if (/^\d*$/.test(value)) {
-                          setCardInfo({ ...cardInfo, expireMonth: value });
-                        }
-                      }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg bg-white" required disabled={isTopUpLoading} />
-                    </div>
-                    <div className="w-1/2">
-                      <label className="block text-sm font-medium mb-1 text-gray-700">SKT Yıl</label>
-                      <input type="text" maxLength={2} value={cardInfo.expireYear} onChange={e => {
-                        const value = e.target.value;
-                        if (/^\d*$/.test(value)) {
-                          setCardInfo({ ...cardInfo, expireYear: value });
-                        }
-                      }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg bg-white" required disabled={isTopUpLoading} />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">CVC</label>
-                    <input type="text" maxLength={4} value={cardInfo.cvc} onChange={e => {
-                      const value = e.target.value;
-                      // Sadece rakamları kabul et
-                      if (/^\d*$/.test(value)) {
-                        setCardInfo({ ...cardInfo, cvc: value });
-                      }
-                    }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg bg-white" required disabled={isTopUpLoading} />
-                  </div>
-                </div>
-                <button type="submit" className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-md transition disabled:opacity-60 text-xl flex items-center justify-center gap-2" disabled={isTopUpLoading}>{isTopUpLoading ? 'Yükleniyor...' : <><span role="img" aria-label="card">💳</span>Para Yükle</>}</button>
-              </form>
-            </div>
-          </div>
-        )}
 
         {/* Son İşlemler */}
         <div className="mt-12 mb-8 animate-fade-in">

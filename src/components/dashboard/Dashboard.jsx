@@ -982,7 +982,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
       title: 'Bakiye Yükle',
       description: 'Kartınıza hızlıca bakiye yükleyin',
       icon: '💰',
-      action: () => isAuthenticated ? navigate('/wallet') : navigate('/login')
+      action: () => isAuthenticated ? navigate('/balance-topup') : navigate('/login')
     },
     {
       title: 'Ödeme Noktaları',

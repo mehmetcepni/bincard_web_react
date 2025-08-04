@@ -153,19 +153,19 @@ const BalanceTopUp = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 p-4 md:p-8 animate-fade-in">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-8 animate-slide-down">
           <button 
             onClick={() => navigate('/wallet')}
-            className="p-2 rounded-lg bg-white/80 hover:bg-white shadow-md transition-colors"
+            className="p-3 rounded-xl bg-white/80 hover:bg-white shadow-lg hover:shadow-xl transition-all duration-200 group"
           >
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-gray-600 group-hover:text-gray-800 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <div className="bg-gradient-to-br from-green-400 to-green-200 rounded-full p-4 shadow-lg border-4 border-white">
+          <div className="bg-gradient-to-br from-green-400 to-green-200 rounded-full p-4 shadow-xl border-4 border-white">
             <span className="text-4xl">💰</span>
           </div>
           <div>
@@ -175,7 +175,7 @@ const BalanceTopUp = () => {
         </div>
 
         {/* Mevcut Bakiye Bilgisi */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white mb-8 shadow-xl">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white mb-8 shadow-xl animate-slide-up">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-blue-200 text-sm mb-1">Mevcut Bakiye</div>
@@ -188,7 +188,7 @@ const BalanceTopUp = () => {
         </div>
 
         {/* Bakiye Yükleme Formu */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 animate-slide-up" style={{animationDelay: '0.1s'}}>
           <form onSubmit={handleTopUp} className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
