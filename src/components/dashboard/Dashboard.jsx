@@ -9,6 +9,7 @@ import PaymentPointService from '../../services/payment-point.service';
 import News from './News.jsx';
 import LikedNews from './LikedNews.jsx';
 import Wallet from './Wallet.jsx';
+import Stations from './Stations.jsx';
 import Feedback from './Feedback.jsx';
 import PaymentPoints from './PaymentPoints.jsx';
 import Settings from './Settings.jsx';
@@ -18,9 +19,10 @@ import bincardLogo from '../../assets/bincard-logo.jpg';
 // KonyaKart stilinde menü öğeleri
 const menuItems = [
   { text: 'Ana Sayfa', icon: '🏠', path: 'dashboard', key: 'dashboard' },
-  { text: 'Cüzdan', icon: '�', path: 'wallet', key: 'wallet' },
+  { text: 'Cüzdan', icon: '💳', path: 'wallet', key: 'wallet' },
+  { text: 'Duraklar', icon: '🚏', path: 'routes', key: 'routes' },
   { text: 'Ödeme Noktaları', icon: '📍', path: 'payment-points', key: 'payment-points' },
-  { text: 'İşlem Geçmişi', icon: '�', path: 'history', key: 'history' },
+  { text: 'İşlem Geçmişi', icon: '📋', path: 'history', key: 'history' },
   { text: 'Haberler', icon: '📰', path: 'news', key: 'news' },
   { text: 'Favoriler', icon: '⭐', path: 'liked-news', key: 'liked-news' },
   { text: 'Destek', icon: '💬', path: 'feedback', key: 'feedback' },
@@ -151,6 +153,8 @@ const Dashboard = () => {
         return <LikedNews />;
       case 'wallet':
         return <Wallet />;
+      case 'routes':
+        return <Stations />;
       case 'feedback':
         return <Feedback />;
       case 'payment-points':
