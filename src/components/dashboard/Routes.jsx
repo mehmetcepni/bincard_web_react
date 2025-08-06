@@ -254,7 +254,7 @@ const Routes = () => {
     const routeColor = RouteService.getRouteColor(route.id);
     
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200">
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
@@ -264,20 +264,20 @@ const Routes = () => {
               >
                 {RouteService.formatRouteNumber(route.routeNumber || route.id)}
               </div>
-              <h3 className="font-semibold text-gray-900 text-lg">
+              <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
                 {route.routeName || route.name}
               </h3>
             </div>
             
             {route.description && (
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 {route.description}
               </p>
             )}
             
             {route.startLocation && route.endLocation && (
-              <p className="text-sm text-gray-500">
-                📍 {route.startLocation} ↔ {route.endLocation}
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Konum: {route.startLocation} ↔ {route.endLocation}
               </p>
             )}
           </div>
@@ -309,11 +309,11 @@ const Routes = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Rotalar</h1>
-        <p className="text-gray-600">Otobüs rotalarını keşfet, rota planla</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Rotalar</h1>
+        <p className="text-gray-600 dark:text-gray-400">Otobüs rotalarını keşfet, rota planla</p>
       </div>
 
       {/* Arama Bölümü */}
@@ -325,7 +325,7 @@ const Routes = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -349,23 +349,23 @@ const Routes = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex mb-6 border-b border-gray-200">
+      <div className="flex mb-6 border-b border-gray-200 dark:border-gray-600">
         <button
           onClick={() => changeTab('all')}
-          className={`py-2 px-4 border-b-2 font-medium text-sm ${
+          className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors ${
             activeTab === 'all'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           Tüm Rotalar ({routes.length})
         </button>
         <button
           onClick={() => changeTab('favorites')}
-          className={`py-2 px-4 border-b-2 font-medium text-sm ${
+          className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors ${
             activeTab === 'favorites'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           Favorilerim ({favoriteRoutes.length})

@@ -17,18 +17,18 @@ import Settings from './Settings.jsx';
 import TokenDebug from '../debug/TokenDebug.jsx';
 import bincardLogo from '../../assets/bincard-logo.jpg';
 
-// KonyaKart stilinde menü öğeleri
+// Yalın menü öğeleri
 const menuItems = [
-  { text: 'Ana Sayfa', icon: '🏠', path: 'dashboard', key: 'dashboard' },
-  { text: 'Cüzdan', icon: '💳', path: 'wallet', key: 'wallet' },
-  { text: 'Duraklar', icon: '🚏', path: 'routes', key: 'routes' },
-  { text: 'Rotalar', icon: '🚌', path: 'bus-routes', key: 'bus-routes' },
-  { text: 'Ödeme Noktaları', icon: '📍', path: 'payment-points', key: 'payment-points' },
-  { text: 'İşlem Geçmişi', icon: '📋', path: 'history', key: 'history' },
-  { text: 'Haberler', icon: '📰', path: 'news', key: 'news' },
-  { text: 'Favoriler', icon: '⭐', path: 'liked-news', key: 'liked-news' },
-  { text: 'Destek', icon: '💬', path: 'feedback', key: 'feedback' },
-  { text: 'Ayarlar', icon: '⚙️', path: 'settings', key: 'settings' },
+  { text: 'Ana Sayfa', path: 'dashboard', key: 'dashboard' },
+  { text: 'Cüzdan', path: 'wallet', key: 'wallet' },
+  { text: 'Duraklar', path: 'routes', key: 'routes' },
+  { text: 'Rotalar', path: 'bus-routes', key: 'bus-routes' },
+  { text: 'Ödeme Noktaları', path: 'payment-points', key: 'payment-points' },
+  { text: 'İşlem Geçmişi', path: 'history', key: 'history' },
+  { text: 'Haberler', path: 'news', key: 'news' },
+  { text: 'Favoriler', path: 'liked-news', key: 'liked-news' },
+  { text: 'Destek', path: 'feedback', key: 'feedback' },
+  { text: 'Ayarlar', path: 'settings', key: 'settings' },
 ];
 
 const Dashboard = () => {
@@ -42,6 +42,35 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [selectedNews, setSelectedNews] = useState(null);
   const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
+  
+  // Theme management
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
+  // Theme toggle function
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+    
+    // Apply theme to document
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  // Apply theme on component mount and change
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   // URL'ye göre aktif tab'ı belirle
   useEffect(() => {
@@ -224,6 +253,23 @@ const Dashboard = () => {
 
             {/* User Menu */}
             <div className="flex items-center space-x-4">
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title={isDarkMode ? 'Açık Moda Geç' : 'Koyu Moda Geç'}
+              >
+                {isDarkMode ? (
+                  <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                  </svg>
+                )}
+              </button>
+              
               {isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-3">
@@ -298,13 +344,12 @@ const Dashboard = () => {
                 <button
                   key={item.key}
                   onClick={() => handleNavigation(item)}
-                  className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg text-left transition-colors ${
+                  className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-colors ${
                     activeTab === item.key
                       ? 'bg-[#005bac] text-white'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <span className="text-lg">{item.icon}</span>
                   <span className="font-medium">{item.text}</span>
                 </button>
               ))}
@@ -930,14 +975,14 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
 
   // Section definitions for navigation
   const sections = [
-    { id: 'hero', label: 'Ana Sayfa', icon: '🏠' },
-    { id: 'news', label: 'Haberler', icon: '📰' },
-    { id: 'summary', label: 'Özet Bilgiler', icon: '📊' },
-    { id: 'pricing', label: 'Ücretler', icon: '💳' },
-    { id: 'actions', label: 'Hızlı İşlemler', icon: '⚡' },
-    { id: 'paymentPoints', label: 'Yakın Marketler', icon: '🏪' },
-    ...(isAuthenticated ? [{ id: 'transactions', label: 'Son İşlemler', icon: '📋' }] : []),
-    ...(!isAuthenticated ? [{ id: 'features', label: 'Özellikler', icon: '✨' }] : [])
+    { id: 'hero', label: 'Ana Sayfa' },
+    { id: 'news', label: 'Haberler' },
+    { id: 'summary', label: 'Özet Bilgiler' },
+    { id: 'pricing', label: 'Ücretler' },
+    { id: 'actions', label: 'Hızlı İşlemler' },
+    { id: 'paymentPoints', label: 'Yakın Marketler' },
+    ...(isAuthenticated ? [{ id: 'transactions', label: 'Son İşlemler' }] : []),
+    ...(!isAuthenticated ? [{ id: 'features', label: 'Özellikler' }] : [])
   ];
 
   // Bakiye formatını düzenle
@@ -964,21 +1009,18 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
     {
       title: 'Aktif Kartlar',
       value: isAuthenticated ? '2 Kart' : '--',
-      icon: '🎫',
       color: 'bg-gradient-to-br from-[#1e40af] to-[#1d4ed8]',
       onClick: () => isAuthenticated ? navigate('/wallet') : navigate('/login')
     },
     {
       title: 'Puanlar',
       value: isAuthenticated ? '1,240' : '--',
-      icon: '⭐',
       color: 'bg-gradient-to-br from-[#2563eb] to-[#3b82f6]',
       onClick: () => isAuthenticated ? navigate('/wallet') : navigate('/login')
     },
     {
       title: 'Bu Ay',
       value: isAuthenticated ? '42 Yolculuk' : '--',
-      icon: '🚌',
       color: 'bg-gradient-to-br from-[#3b82f6] to-[#60a5fa]',
       onClick: () => isAuthenticated ? navigate('/history') : navigate('/login')
     }
@@ -989,13 +1031,11 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
     {
       title: 'Bakiye Yükle',
       description: 'Kartınıza hızlıca bakiye yükleyin',
-      icon: '💰',
       action: () => isAuthenticated ? navigate('/balance-topup') : navigate('/login')
     },
     {
       title: 'Ödeme Noktaları',
       description: 'Yakındaki marketleri keşfedin',
-      icon: '🏪',
       action: () => navigate('/payment-points')
     },
     {
@@ -1045,7 +1085,6 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
               {/* Tooltip - TUSAŞ stilinde */}
               <div className="absolute right-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                 <div className="bg-[#005bac] text-white text-xs px-3 py-2 rounded-md whitespace-nowrap font-medium shadow-lg">
-                  <span className="mr-1">{section.icon}</span>
                   {section.label}
                   {/* Ok işareti */}
                   <div className="absolute left-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-[#005bac]"></div>
@@ -1076,7 +1115,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                 }`}
                 title={section.label}
               >
-                <span className="text-xs">{section.icon}</span>
+                <span className="text-xs font-bold">{section.label.charAt(0)}</span>
               </button>
             ))}
           </div>
@@ -1090,18 +1129,8 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 fade-in">
-              {isAuthenticated 
-                ? `Hoş Geldin${user?.firstName ? `, ${user.firstName}` : ''}!` 
-                : 'BinCard ile Şehri Keşfedin'
-              }
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto fade-in">
-              {isAuthenticated 
-                ? 'Akıllı ulaşım kartınızı kolayca yönetin, bakiye yükleyin ve işlemlerinizi takip edin.'
-                : 'Akıllı ulaşım kartı sistemi ile şehir içi ulaşımda konfor ve kolaylık yaşayın. Hemen üye olun ve avantajlardan yararlanın.'
-              }
-            </p>
+            
+            
             {!isAuthenticated && (
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center fade-in">
                 <button 
@@ -1252,7 +1281,6 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-3xl">{card.icon}</div>
                   <div className="text-white/80">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1412,9 +1440,6 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                 onClick={action.action}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-200">
-                  {action.icon}
-                </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{action.title}</h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">{action.description}</p>
                 <div className="mt-4 text-[#005bac] font-medium group-hover:translate-x-1 transition-transform duration-200">
@@ -1469,7 +1494,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                         {point.address}
                       </p>
                       <div className="flex items-center gap-2 text-sm">
-                        <span className="text-gray-500 dark:text-gray-400">📍</span>
+                        <span className="text-gray-500 dark:text-gray-400">Konum:</span>
                         <span className="text-gray-600 dark:text-gray-300">
                           {point.distance ? `${point.distance.toFixed(1)} km` : 'Mesafe hesaplanıyor...'}
                         </span>
@@ -1502,7 +1527,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                           key={idx}
                           className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                         >
-                          💳 {method}
+                          {method}
                         </span>
                       ))}
                       {point.paymentMethods.length > 3 && (
@@ -1528,7 +1553,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      📍 Yol Tarifi
+                      Yol Tarifi
                     </button>
                     
                     <span className="text-[#005bac] font-medium group-hover:translate-x-1 transition-transform duration-200">
@@ -1555,7 +1580,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                 </p>
                 <div className="space-y-2 mb-4">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    📍 Arama yapılan konum: {userLocation ? 
+                    Arama yapılan konum: {userLocation ? 
                       `${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}` : 
                       'Konum alınamadı'}
                   </p>
@@ -1658,7 +1683,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                         'N/A'
                       }
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">📍 En Yakın</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">En Yakın</div>
                   </div>
                 </div>
               </div>

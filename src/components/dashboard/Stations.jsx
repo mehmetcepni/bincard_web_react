@@ -7,13 +7,13 @@ const Stations = () => {
   const [stations, setStations] = useState([]);
   const [favoriteStations, setFavoriteStations] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('nearby');
   const [searchLoading, setSearchLoading] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchSuggestions, setSuggestions] = useState([]);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
-  const [activeTab, setActiveTab] = useState('nearby'); // 'nearby', 'favorites', 'search'
   const [selectedStation, setSelectedStation] = useState(null);
   const [stationRoutes, setStationRoutes] = useState([]);
   
@@ -385,11 +385,11 @@ const Stations = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Duraklar</h1>
-        <p className="text-gray-600">Yakınındaki durakları keşfet, favori duraklarını yönet</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Duraklar</h1>
+        <p className="text-gray-600 dark:text-gray-400">Yakınındaki durakları keşfet, favori duraklarını yönet</p>
       </div>
 
       {/* Arama Bölümü */}
@@ -512,23 +512,23 @@ const Stations = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex mb-6 border-b border-gray-200">
+      <div className="flex mb-6 border-b border-gray-200 dark:border-gray-600">
         <button
           onClick={() => changeTab('nearby')}
-          className={`py-2 px-4 border-b-2 font-medium text-sm ${
+          className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors ${
             activeTab === 'nearby'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           Yakındaki Duraklar ({stations.length})
         </button>
         <button
           onClick={() => changeTab('favorites')}
-          className={`py-2 px-4 border-b-2 font-medium text-sm ${
+          className={`py-2 px-4 border-b-2 font-medium text-sm transition-colors ${
             activeTab === 'favorites'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
           Favorilerim ({favoriteStations.length})

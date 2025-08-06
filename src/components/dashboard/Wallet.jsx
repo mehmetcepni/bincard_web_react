@@ -73,33 +73,33 @@ const Wallet = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-6">
-        <div className="text-xl text-blue-700 animate-pulse">Cüzdan yükleniyor...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-800 dark:to-gray-900 p-6 transition-colors duration-300">
+        <div className="text-xl text-blue-700 dark:text-blue-400 animate-pulse">Cüzdan yükleniyor...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-6">
-        <div className="text-xl text-red-600">{error}</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-gray-800 dark:to-gray-900 p-6 transition-colors duration-300">
+        <div className="text-xl text-red-600 dark:text-red-400">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-blue-50 to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 md:p-8 transition-colors duration-300">
       <div className="max-w-3xl mx-auto">
         {/* Header & User Info */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="bg-gradient-to-br from-yellow-400 to-yellow-200 rounded-full p-4 shadow-lg border-4 border-white">
+          <div className="bg-gradient-to-br from-yellow-400 to-yellow-200 dark:from-yellow-500 dark:to-yellow-300 rounded-full p-4 shadow-lg border-4 border-white dark:border-gray-700">
             <span className="text-4xl">💳</span>
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-800 mb-1 tracking-tight">Cüzdanım</h1>
-            <div className="flex items-center gap-2 text-gray-500 text-sm">
-              <span className="font-mono bg-gray-100 px-2 py-1 rounded">ID: {wallet?.walletId || '-'}</span>
-              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">{wallet?.currency || '₺'}</span>
+            <h1 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-1 tracking-tight">Cüzdanım</h1>
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm">
+              <span className="font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">ID: {wallet?.walletId || '-'}</span>
+              <span className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">{wallet?.currency || '₺'}</span>
             </div>
           </div>
         </div>
@@ -137,24 +137,24 @@ const Wallet = () => {
 
         {/* Son İşlemler */}
         <div className="mt-12 mb-8 animate-fade-in">
-          <h2 className="text-xl font-bold text-blue-700 mb-4 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-blue-700 dark:text-blue-400 mb-4 flex items-center gap-2">
             <span>🧾</span>Son İşlemler
           </h2>
-          <div className="bg-white rounded-2xl shadow-lg overflow-x-auto">
-            <table className="min-w-full text-sm text-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-x-auto border dark:border-gray-700">
+            <table className="min-w-full text-sm text-gray-700 dark:text-gray-300">
               <thead>
-                <tr className="bg-blue-50">
-                  <th className="py-3 px-4 text-left">Tür</th>
-                  <th className="py-3 px-4 text-left">Tutar</th>
-                  <th className="py-3 px-4 text-left">Tarih</th>
-                  <th className="py-3 px-4 text-left">Durum</th>
+                <tr className="bg-blue-50 dark:bg-gray-700">
+                  <th className="py-3 px-4 text-left text-gray-800 dark:text-gray-200">Tür</th>
+                  <th className="py-3 px-4 text-left text-gray-800 dark:text-gray-200">Tutar</th>
+                  <th className="py-3 px-4 text-left text-gray-800 dark:text-gray-200">Tarih</th>
+                  <th className="py-3 px-4 text-left text-gray-800 dark:text-gray-200">Durum</th>
                 </tr>
               </thead>
               <tbody>
                 {dummyTransactions.map(tx => (
-                  <tr key={tx.id} className="border-b last:border-b-0 hover:bg-blue-50/50 transition">
+                  <tr key={tx.id} className="border-b border-gray-200 dark:border-gray-600 last:border-b-0 hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition">
                     <td className="py-3 px-4 flex items-center gap-2 font-semibold"><span>{tx.icon}</span>{tx.type}</td>
-                    <td className={`py-3 px-4 font-mono ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>{tx.amount > 0 ? '+' : ''}{tx.amount} ₺</td>
+                    <td className={`py-3 px-4 font-mono ${tx.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>{tx.amount > 0 ? '+' : ''}{tx.amount} ₺</td>
                     <td className="py-3 px-4">{tx.date}</td>
                     <td className="py-3 px-4">{tx.status}</td>
                   </tr>
@@ -166,7 +166,7 @@ const Wallet = () => {
 
         {/* Transfer Detayı (örnek) */}
         <div className="mt-12 mb-8 animate-fade-in">
-          <h2 className="text-xl font-bold text-blue-700 mb-4 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-blue-700 dark:text-blue-400 mb-4 flex items-center gap-2">
             <span>🔍</span>Transfer Detayı (Örnek)
           </h2>
           <TransferDetail transferId={1} />
@@ -174,7 +174,7 @@ const Wallet = () => {
 
         {/* İşlem Geçmişi Placeholder */}
         <div className="mt-8 mb-4 text-center">
-          <div className="inline-block bg-gradient-to-r from-yellow-100 to-yellow-50 border border-yellow-200 rounded-xl p-4 text-yellow-800 text-base shadow">
+          <div className="inline-block bg-gradient-to-r from-yellow-100 to-yellow-50 dark:from-yellow-900/50 dark:to-yellow-800/50 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4 text-yellow-800 dark:text-yellow-200 text-base shadow">
             <strong>🚧 Geliştirme Aşamasında:</strong> Bu sayfa henüz tamamlanmamış bir protiptir. Yakında gerçek cüzdan işlevleri ve işlem geçmişi burada görünecek.
           </div>
         </div>
