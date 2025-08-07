@@ -1654,7 +1654,7 @@ const AuthService = {
   // Hesap dondurma
   async freezeAccount(reason = '', description = '') {
     try {
-      console.log('[FREEZE_ACCOUNT] Hesap dondurma işlemi başlatılıyor...');
+      console.log('[FREEZE_ACCOUNT] Hesap pasifleştirme işlemi başlatılıyor...');
       console.log('[FREEZE_ACCOUNT] Sebep:', reason);
       console.log('[FREEZE_ACCOUNT] Açıklama:', description);
       
@@ -1668,21 +1668,31 @@ const AuthService = {
       
       const response = await axiosInstance.post('/auth/freeze-account', freezeRequest);
       
-      if (response.data && response.data.success) {
-        console.log('[FREEZE_ACCOUNT] Hesap başarıyla donduruldu');
+      console.log('[FREEZE_ACCOUNT] Backend response:', response.data);
+      console.log('[FREEZE_ACCOUNT] Response structure:', {
+        success: response.data?.success,
+        message: response.data?.message,
+        status: response.status,
+        keys: Object.keys(response.data || {})
+      });
+      
+      // Backend ResponseMessage format'ını handle et
+      // ResponseMessage: { message: string, success: boolean }
+      if (response.status === 200) {
+        console.log('[FREEZE_ACCOUNT] Hesap başarıyla pasifleştirildi');
         
         // Kullanıcıyı otomatik çıkış yap
         this.logout();
         
         return {
           success: true,
-          message: response.data.message || 'Hesabınız başarıyla donduruldu'
+          message: response.data?.message || 'Hesabınız başarıyla geçici olarak pasifleştirildi'
         };
       } else {
-        throw new Error(response.data?.message || 'Hesap dondurma işlemi başarısız');
+        throw new Error(response.data?.message || response.data?.error || 'Hesap pasifleştirme işlemi başarısız');
       }
     } catch (error) {
-      console.error('[FREEZE_ACCOUNT] Hesap dondurma hatası:', error);
+      console.error('[FREEZE_ACCOUNT] Hesap pasifleştirme hatası:', error);
       console.error('[FREEZE_ACCOUNT] Error details:', {
         status: error.response?.status,
         statusText: error.response?.statusText,
@@ -1692,9 +1702,10 @@ const AuthService = {
       
       // Specific backend exceptions
       if (error.response?.status === 400) {
-        const errorMessage = error.response.data?.message || 'Geçersiz istek';
-        if (errorMessage.includes('already frozen') || errorMessage.includes('zaten dondurulmuş')) {
-          throw new Error('Hesabınız zaten dondurulmuş durumda');
+        const errorMessage = error.response.data?.message || error.response.data?.error || 'Geçersiz istek';
+        if (errorMessage.includes('already frozen') || errorMessage.includes('zaten dondurulmuş') || 
+            errorMessage.includes('AccountAlreadyFrozenException') || errorMessage.includes('zaten pasif')) {
+          throw new Error('Hesabınız zaten pasifleştirilmiş durumda');
         }
         throw new Error(errorMessage);
       }
@@ -1707,6 +1718,11 @@ const AuthService = {
         throw new Error('Bu işlem için yetkiniz bulunmuyor.');
       }
       
+      if (error.response?.status === 404) {
+        // Backend UserNotFoundException throw ediyor
+        throw new Error('Kullanıcı bulunamadı. Lütfen tekrar giriş yapmayı deneyin.');
+      }
+      
       // Backend henüz implementasyonu tamamlanmamışsa mock response döndür
       if (error.response?.status === 500 || error.response?.status === 404) {
         console.log('[FREEZE_ACCOUNT] Backend hatası tespit edildi, mock implementasyon kullanılıyor...');
@@ -1715,14 +1731,14 @@ const AuthService = {
         await new Promise(resolve => setTimeout(resolve, 1500));
         
         // Mock success response
-        console.log('[FREEZE_ACCOUNT] Mock hesap dondurma işlemi tamamlandı');
+        console.log('[FREEZE_ACCOUNT] Mock hesap pasifleştirme işlemi tamamlandı');
         
         // Kullanıcıyı otomatik çıkış yap
         this.logout();
         
         return {
           success: true,
-          message: 'Hesabınız başarıyla donduruldu (Demo Mode)'
+          message: 'Hesabınız başarıyla geçici olarak pasifleştirildi (Demo Mode)'
         };
       }
       
@@ -1734,6 +1750,10 @@ const AuthService = {
       // Backend hatası
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
+      }
+      
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
       }
       
       throw new Error('İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
@@ -1823,11 +1843,12 @@ const AuthService = {
 
       const response = await axiosInstance.post('/auth/unfreeze-account', requestData);
       
-      console.log('✅ Hesap çözme başarılı:', response.data);
+      console.log('✅ Hesap çözme backend response:', response.data);
       
+      // Backend ResponseMessage format'ını handle et
       return {
         success: true,
-        message: response.data.message || 'Hesabınız başarıyla yeniden aktifleştirildi'
+        message: response.data.message || response.data.data || 'Hesabınız başarıyla yeniden aktifleştirildi'
       };
       
     } catch (error) {
@@ -1841,7 +1862,7 @@ const AuthService = {
       
       // Specific backend exceptions
       if (error.response?.status === 400) {
-        const errorMessage = error.response.data?.message || 'Geçersiz istek';
+        const errorMessage = error.response.data?.message || error.response.data?.error || 'Geçersiz istek';
         if (errorMessage.includes('not frozen') || errorMessage.includes('AccountNotFrozenException')) {
           throw new Error('Hesabınız zaten aktif durumda');
         }
@@ -1857,6 +1878,10 @@ const AuthService = {
       }
       
       if (error.response?.status === 404) {
+        const errorMessage = error.response.data?.message || error.response.data?.error;
+        if (errorMessage && errorMessage.includes('UserNotFoundException')) {
+          throw new Error('Kullanıcı bulunamadı.');
+        }
         throw new Error('Kullanıcı bulunamadı.');
       }
       
@@ -1878,6 +1903,10 @@ const AuthService = {
       // Backend hatası
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
+      }
+      
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
       }
       
       throw new Error('İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');

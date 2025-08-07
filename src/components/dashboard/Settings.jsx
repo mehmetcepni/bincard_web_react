@@ -5,6 +5,116 @@ import AuthService from '../../services/auth.service';
 import NotificationService from '../../services/notification.service';
 import Avatar from '../common/Avatar';
 
+// Hesap Aktifleştirme Modal Component
+const UnfreezeAccountModal = ({ 
+  isOpen, 
+  onClose, 
+  unfreezeReason, 
+  setUnfreezeReason, 
+  unfreezeDescription, 
+  setUnfreezeDescription, 
+  onConfirm, 
+  isUnfreezing,
+  t 
+}) => {
+  if (!isOpen) return null;
+
+  const unfreezeReasons = [
+    { value: 'user_request', label: t('settings.unfreezeReasons.user_request') },
+    { value: 'security_cleared', label: t('settings.unfreezeReasons.security_cleared') },
+    { value: 'account_review', label: t('settings.unfreezeReasons.account_review') },
+    { value: 'other', label: t('settings.unfreezeReasons.other') }
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+            🔓 {t('settings.unfreezeAccount')}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl font-bold"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4">
+            <p className="text-green-800 dark:text-green-200 text-sm">
+              ⚠️ {t('settings.unfreezeAccountWarning')}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t('settings.unfreezeReason')} *
+            </label>
+            <select
+              value={unfreezeReason}
+              onChange={(e) => setUnfreezeReason(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-colors"
+              required
+            >
+              <option value="">{t('common.selectOption')}</option>
+              {unfreezeReasons.map((reason) => (
+                <option key={reason.value} value={reason.value}>
+                  {reason.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t('settings.unfreezeDescription')}
+            </label>
+            <textarea
+              value={unfreezeDescription}
+              onChange={(e) => setUnfreezeDescription(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-colors resize-none"
+              placeholder={t('settings.unfreezeDescriptionPlaceholder')}
+              maxLength={500}
+            />
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {unfreezeDescription.length}/500
+            </div>
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-700 font-medium transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isUnfreezing || !unfreezeReason.trim()}
+              className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center"
+            >
+              {isUnfreezing ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  {t('settings.unfreezing')}
+                </>
+              ) : (
+                <>🔓 {t('settings.unfreezeConfirm')}</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Settings = () => {
   const { t } = useTranslation();
   const [user, setUser] = useState(null);
@@ -533,7 +643,7 @@ const Settings = () => {
     setIsFreezing(true);
 
     try {
-      console.log('[SETTINGS] Hesap dondurma başlatılıyor...', {
+      console.log('[SETTINGS] Hesap pasifleştirme başlatılıyor...', {
         reason: freezeReason,
         description: freezeDescription.slice(0, 50) + (freezeDescription.length > 50 ? '...' : '')
       });
@@ -561,18 +671,24 @@ const Settings = () => {
         throw new Error('İşlem sonucu alınamadı');
       }
     } catch (error) {
-      console.error('[SETTINGS] Hesap dondurma hatası:', error);
+      console.error('[SETTINGS] Hesap pasifleştirme hatası:', error);
       console.error('[SETTINGS] Error type:', typeof error);
       console.error('[SETTINGS] Error message:', error.message);
       
       let errorMessage = t('settings.freezeError');
       
-      if (error.message && error.message.includes('zaten dondurulmuş')) {
+      if (error.message && error.message.includes('zaten pasif')) {
+        errorMessage = t('settings.alreadyFrozenError');
+      } else if (error.message && error.message.includes('zaten dondurulmuş')) {
+        errorMessage = t('settings.alreadyFrozenError');
+      } else if (error.message && error.message.includes('AccountAlreadyFrozenException')) {
         errorMessage = t('settings.alreadyFrozenError');
       } else if (error.message && error.message.includes('yetkiniz bulunmuyor')) {
         errorMessage = t('settings.unauthorizedError');
       } else if (error.message && error.message.includes('Oturum bilginiz geçersiz')) {
         errorMessage = t('settings.sessionExpiredError');
+      } else if (error.message && error.message.includes('UserNotFoundException')) {
+        errorMessage = t('settings.userNotFoundError');
       } else if (error.message && error.message.includes('İnternet bağlantınızı kontrol edin')) {
         errorMessage = error.message;
       } else if (error.message && error.message.includes('Demo Mode')) {
@@ -657,11 +773,15 @@ const Settings = () => {
       
       if (error.message && error.message.includes('zaten aktif')) {
         errorMessage = t('settings.alreadyActiveError');
+      } else if (error.message && error.message.includes('AccountNotFrozenException')) {
+        errorMessage = t('settings.alreadyActiveError');
       } else if (error.message && error.message.includes('yetkiniz bulunmuyor')) {
         errorMessage = t('settings.unauthorizedError');
       } else if (error.message && error.message.includes('Oturum bilginiz geçersiz')) {
         errorMessage = t('settings.sessionExpiredError');
       } else if (error.message && error.message.includes('Kullanıcı bulunamadı')) {
+        errorMessage = t('settings.userNotFoundError');
+      } else if (error.message && error.message.includes('UserNotFoundException')) {
         errorMessage = t('settings.userNotFoundError');
       } else if (error.message && error.message.includes('Demo Mode')) {
         errorMessage = error.message;
@@ -1804,7 +1924,19 @@ const Settings = () => {
       {showAvatarModal && <AvatarChangeModal />}
       {showNotificationDetailModal && <NotificationDetailModal />}
       {showFreezeAccountModal && <FreezeAccountModal />}
-      {showUnfreezeAccountModal && <UnfreezeAccountModal />}
+      {showUnfreezeAccountModal && (
+        <UnfreezeAccountModal 
+          isOpen={showUnfreezeAccountModal}
+          onClose={closeUnfreezeAccountModal}
+          unfreezeReason={unfreezeReason}
+          setUnfreezeReason={setUnfreezeReason}
+          unfreezeDescription={unfreezeDescription}
+          setUnfreezeDescription={setUnfreezeDescription}
+          onConfirm={handleUnfreezeAccount}
+          isUnfreezing={isUnfreezing}
+          t={t}
+        />
+      )}
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -1882,104 +2014,6 @@ const Settings = () => {
       </div>
     </div>
   );
-
-  // Hesap Çözme Modal Component
-  const UnfreezeAccountModal = () => {
-    const unfreezeReasons = [
-      { value: 'user_request', label: t('settings.unfreezeReasons.userRequest') },
-      { value: 'security_cleared', label: t('settings.unfreezeReasons.securityCleared') },
-      { value: 'account_review', label: t('settings.unfreezeReasons.accountReview') },
-      { value: 'other', label: t('settings.unfreezeReasons.other') }
-    ];
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-2xl">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-              🔓 {t('settings.unfreezeAccount')}
-            </h2>
-            <button
-              onClick={closeUnfreezeAccountModal}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl font-bold"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4">
-              <p className="text-green-800 dark:text-green-200 text-sm">
-                ⚠️ {t('settings.unfreezeWarning')}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('settings.unfreezeReason')} *
-              </label>
-              <select
-                value={unfreezeReason}
-                onChange={(e) => setUnfreezeReason(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-colors"
-                required
-              >
-                <option value="">{t('settings.selectReason')}</option>
-                {unfreezeReasons.map((reason) => (
-                  <option key={reason.value} value={reason.value}>
-                    {reason.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('settings.unfreezeDescription')}
-              </label>
-              <textarea
-                value={unfreezeDescription}
-                onChange={(e) => setUnfreezeDescription(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-colors resize-none"
-                placeholder={t('settings.unfreezeDescriptionPlaceholder')}
-                maxLength={500}
-              />
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {unfreezeDescription.length}/500
-              </div>
-            </div>
-
-            <div className="flex space-x-3 pt-4">
-              <button
-                onClick={closeUnfreezeAccountModal}
-                className="flex-1 px-4 py-3 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-700 font-medium transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={handleUnfreezeAccount}
-                disabled={isUnfreezing || !unfreezeReason.trim()}
-                className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center"
-              >
-                {isUnfreezing ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    {t('settings.unfreezing')}
-                  </>
-                ) : (
-                  <>🔓 {t('settings.unfreezeConfirm')}</>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 };
 
 export default Settings;
