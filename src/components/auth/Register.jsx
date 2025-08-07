@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AuthService from '../../services/auth.service';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import bincardLogo from '../../assets/bincard-logo.jpg';
 
 const Register = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [step, setStep] = useState(0); // 0: form, 1: sms
   const [form, setForm] = useState({
@@ -46,17 +48,17 @@ const Register = () => {
   };
 
   const validate = () => {
-    if (!form.firstName || form.firstName.length < 2) return '👤 Ad en az 2 karakter olmalı';
-    if (!/^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]+$/.test(form.firstName)) return '👤 Ad alanına sadece harf girebilirsiniz';
-    if (!form.lastName || form.lastName.length < 2) return '👤 Soyad en az 2 karakter olmalı';
-    if (!/^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]+$/.test(form.lastName)) return '👤 Soyad alanına sadece harf girebilirsiniz';
-    if (!form.telephone) return '📱 Lütfen telefon numaranızı girin';
-    if (!/^0[0-9]{10}$/.test(form.telephone)) return '📱 Telefon numarası 0 ile başlamalı ve 11 haneli olmalı (örn: 05xxxxxxxxx)';
-    if (!form.password) return '🔒 Lütfen şifrenizi girin';
-    if (form.password.length !== 6) return '🔒 Şifre tam olarak 6 karakter olmalı';
-    if (!form.confirmPassword) return '🔒 Lütfen şifrenizi tekrar girin';
-    if (form.confirmPassword.length !== 6) return '🔒 Şifre tekrar tam olarak 6 karakter olmalı';
-    if (form.password !== form.confirmPassword) return '🔒 Girdiğiniz şifreler eşleşmiyor. Lütfen kontrol edin.';
+    if (!form.firstName || form.firstName.length < 2) return t('auth.firstNameMinLength');
+    if (!/^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]+$/.test(form.firstName)) return t('auth.firstNameLettersOnly');
+    if (!form.lastName || form.lastName.length < 2) return t('auth.lastNameMinLength');
+    if (!/^[a-zA-ZçğıöşüÇĞİÖŞÜ\s]+$/.test(form.lastName)) return t('auth.lastNameLettersOnly');
+    if (!form.telephone) return t('auth.phoneRequired');
+    if (!/^0[0-9]{10}$/.test(form.telephone)) return t('auth.phoneFormat');
+    if (!form.password) return t('auth.passwordRequired');
+    if (form.password.length !== 6) return t('auth.passwordLength');
+    if (!form.confirmPassword) return t('auth.confirmPasswordRequired');
+    if (form.confirmPassword.length !== 6) return t('auth.confirmPasswordLength');
+    if (form.password !== form.confirmPassword) return t('auth.passwordsDoNotMatch');
     return '';
   };
 

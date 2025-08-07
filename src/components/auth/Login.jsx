@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AuthService from '../../services/auth.service';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,6 +13,7 @@ const getPlatform = () => 'ANDROID';
 const getIpAddress = () => '192.168.1.45';
 
 const Login = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState('');
@@ -49,15 +51,15 @@ const Login = () => {
   const validate = () => {
     let err = '';
     if (!form.telephone) {
-      err = 'Lütfen telefon numaranızı girin';
+      err = t('auth.phoneRequired');
     } else if (!/^0[0-9]{10}$/.test(form.telephone)) {
-      err = 'Telefon numarası 0 ile başlamalı ve 11 haneli olmalı (örn: 05xxxxxxxxx)';
+      err = t('auth.phoneFormat');
     } else if (!/^[0-9]+$/.test(form.telephone)) {
-      err = 'Telefon numarası sadece sayılardan oluşmalı';
+      err = t('auth.phoneNumbersOnly');
     } else if (!form.password) {
-      err = 'Lütfen şifrenizi girin';
+      err = t('auth.passwordRequired');
     } else if (form.password.length !== 6) {
-      err = 'Şifre tam olarak 6 karakter olmalı';
+      err = t('auth.passwordLength');
     }
     setError(err);
     return !err;
@@ -240,8 +242,8 @@ const Login = () => {
               className="w-full h-full object-cover"
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">BinCard'a Giriş Yap</h1>
-          <p className="text-gray-600 dark:text-gray-400">Hesabına giriş yaparak devam et</p>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t('auth.loginToBinCard')}</h1>
+        <p className="text-gray-600 dark:text-gray-400">{t('auth.loginDescription')}</p>
         </div>
 
         {/* Error/Success Messages */}
@@ -347,20 +349,20 @@ const Login = () => {
                 {isSubmitting ? (
                   <>
                     <div className="spinner mr-2"></div>
-                    Giriş Yapılıyor...
+                    {t('auth.loggingIn')}
                   </>
                 ) : (
-                  'Giriş Yap'
+                  t('auth.login')
                 )}
               </button>
 
               {/* Links */}
               <div className="flex items-center justify-between text-sm">
                 <Link to="/register" className="text-[#005bac] hover:text-[#004690] font-medium transition-colors">
-                  Hesabın yok mu? Kayıt ol
+                  {t('auth.noAccount')}
                 </Link>
                 <Link to="/forgot-password" className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
-                  Şifremi unuttum
+                  {t('auth.forgotPassword')}
                 </Link>
               </div>
             </form>
@@ -372,13 +374,13 @@ const Login = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">SMS Doğrulama</h2>
-                <p className="text-gray-600 dark:text-gray-400">Telefonunuza gönderilen doğrulama kodunu girin</p>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('auth.smsVerification')}</h2>
+                <p className="text-gray-600 dark:text-gray-400">{t('auth.smsDescription')}</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Doğrulama Kodu
+                  {t('auth.verifyCode')}
                 </label>
                 <input
                   type="text"
@@ -402,10 +404,10 @@ const Login = () => {
                   {isSubmitting ? (
                     <>
                       <div className="spinner mr-2"></div>
-                      Doğrulanıyor...
+                      {t('auth.verifying')}
                     </>
                   ) : (
-                    'Doğrula ve Giriş Yap'
+                    t('auth.verifyAndLogin')
                   )}
                 </button>
 
@@ -418,10 +420,10 @@ const Login = () => {
                   {isResending ? (
                     <>
                       <div className="spinner mr-2"></div>
-                      SMS Gönderiliyor...
+                      {t('auth.resendingSms')}
                     </>
                   ) : (
-                    'Tekrar SMS Kodu Gönder'
+                    t('auth.resendSmsCode')
                   )}
                 </button>
 
@@ -431,7 +433,7 @@ const Login = () => {
                   onClick={() => setShowVerify(false)}
                   disabled={isSubmitting}
                 >
-                  Geri Dön
+                  {t('auth.goBack')}
                 </button>
               </div>
             </form>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Container,
   Box,
@@ -20,6 +21,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const ResetPassword = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState('');
@@ -34,13 +36,13 @@ const ResetPassword = () => {
     },
     validationSchema: Yup.object({
       verificationCode: Yup.string()
-        .required('Doğrulama kodu gereklidir'),
+        .required(t('auth.verificationCodeRequired')),
       newPassword: Yup.string()
-        .min(6, 'Şifre en az 6 karakter olmalıdır')
-        .required('Yeni şifre gereklidir'),
+        .min(6, t('auth.passwordMinLength'))
+        .required(t('auth.newPasswordRequired')),
       confirmPassword: Yup.string()
-        .oneOf([Yup.ref('newPassword'), null], 'Şifreler eşleşmiyor')
-        .required('Şifre tekrarı gereklidir'),
+        .oneOf([Yup.ref('newPassword'), null], t('auth.passwordsDoNotMatch'))
+        .required(t('auth.confirmPasswordRequired')),
     }),
     onSubmit: async (values) => {
       try {

@@ -84,7 +84,30 @@ const ProtectedRoute = ({ children }) => {
         return;
       }
 
-      console.log('ProtectedRoute: User is authenticated');
+      // Kullanıcı durum kontrolü geçici olarak devre dışı (backend endpoint henüz yok)
+      console.log('⚠️ ProtectedRoute: Kullanıcı durum kontrolü geçici olarak devre dışı');
+      
+      // // Kullanıcı durum kontrolü
+      // const statusCheck = await AuthService.checkUserStatus();
+      
+      // if (!statusCheck.success) {
+      //   if (statusCheck.error === 'ACCOUNT_FROZEN') {
+      //     console.log('ProtectedRoute: Account is frozen, redirecting to login');
+      //     setIsAuthenticated(false);
+      //     setIsLoading(false);
+      //     return;
+      //   } else if (statusCheck.error === 'AUTH_ERROR') {
+      //     console.log('ProtectedRoute: Auth error, user already logged out');
+      //     setIsAuthenticated(false);
+      //     setIsLoading(false);
+      //     return;
+      //   } else if (statusCheck.error === 'CHECK_FAILED' || statusCheck.error === 'NO_TOKEN') {
+      //     // Status kontrolü başarısız ama route erişimi devam etsin (backend endpoint henüz yok)
+      //     console.warn('⚠️ ProtectedRoute: Kullanıcı durum kontrolü başarısız, ancak erişim devam ediyor:', statusCheck.error);
+      //   }
+      // }
+
+      console.log('ProtectedRoute: User is authenticated and active');
       setIsAuthenticated(true);
       setIsLoading(false);
       

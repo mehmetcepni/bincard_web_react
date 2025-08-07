@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import NewsService from '../../services/news.service';
 import AuthService from '../../services/auth.service';
 import { toast } from 'react-toastify';
@@ -49,6 +50,7 @@ const getYouTubeEmbedUrl = (url) => {
 };
 
 const News = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [campaigns, setCampaigns] = useState([]);
@@ -109,8 +111,8 @@ const News = () => {
             content: news.content,
             image: normalizeImageUrl(news.image || news.imageUrl, news.id), // Backend'den 'image' field'ı (NewsDTO'ya göre)
             thumbnail: news.thumbnail,
-            validUntil: news.endDate ? new Date(news.endDate).toLocaleDateString('tr-TR') : 'Sürekli',
-            category: news.type || 'Genel', // Backend'den 'type' alanı geliyor
+            validUntil: news.endDate ? new Date(news.endDate).toLocaleDateString('tr-TR') : t('news.permanent'),
+            category: news.type || t('news.general'), // Backend'den 'type' alanı geliyor
             discount: news.priority === 'KRITIK' ? 'KRİTİK' : 
                      news.priority === 'COK_YUKSEK' ? 'ÇOK YÜKSEK' :
                      news.priority === 'YUKSEK' ? 'YÜKSEK' :
@@ -210,8 +212,8 @@ const News = () => {
             content: news.content,
             image: normalizeImageUrl(news.image || news.imageUrl, news.id), // Backend'den 'image' field'ı (NewsDTO'ya göre)
             thumbnail: news.thumbnail,
-            validUntil: news.endDate ? new Date(news.endDate).toLocaleDateString('tr-TR') : 'Sürekli',
-            category: news.type || 'Genel',
+            validUntil: news.endDate ? new Date(news.endDate).toLocaleDateString('tr-TR') : t('news.permanent'),
+            category: news.type || t('news.general'),
             discount: news.priority === 'KRITIK' ? 'KRİTİK' : 
                      news.priority === 'COK_YUKSEK' ? 'ÇOK YÜKSEK' :
                      news.priority === 'YUKSEK' ? 'YÜKSEK' :
@@ -266,7 +268,7 @@ const News = () => {
     if (!AuthService.isAuthenticated()) {
       try {
         console.log('🔐 [NEWS] Beğeni için auth kontrolü yapılıyor...');
-        const authResult = await AuthService.showLoginConfirmModal('Haberleri beğenme işlemini', navigate);
+        const authResult = await AuthService.showLoginConfirmModal(t('news.likeOperation'), navigate);
         console.log('🔐 [NEWS] Beğeni auth modal sonucu:', authResult);
         
         if (!authResult) {
@@ -281,7 +283,7 @@ const News = () => {
 
     // Backend bağlantısı yoksa işlem yapma
     if (!isOnline) {
-      setError('Backend bağlantısı bulunamadı. Beğeni işlemi yapılamıyor.');
+      setError(t('news.backendConnectionError'));
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -322,7 +324,7 @@ const News = () => {
       );
 
       // Success toast with heart emoji
-      showToast('Haber başarıyla beğenildi!', 'success', '💙');
+              showToast(t('news.likedSuccessfully'), 'success', '💙');
       
       console.log('✅ Haber başarıyla beğenildi:', response);
       
@@ -336,7 +338,7 @@ const News = () => {
       }
       
       // Error toast
-      showToast('Beğeni işlemi başarısız', 'error', '❌');
+      showToast(t('news.likeError'), 'error', '❌');
       
       setError(error.message);
       
@@ -359,7 +361,7 @@ const News = () => {
     if (!AuthService.isAuthenticated()) {
       try {
         console.log('🔐 [NEWS] Beğeni kaldırma için auth kontrolü yapılıyor...');
-        const authResult = await AuthService.showLoginConfirmModal('Beğeni kaldırma işlemini', navigate);
+        const authResult = await AuthService.showLoginConfirmModal(t('news.unlikeOperation'), navigate);
         console.log('🔐 [NEWS] Beğeni kaldırma auth modal sonucu:', authResult);
         
         if (!authResult) {
@@ -408,7 +410,7 @@ const News = () => {
       );
 
       // Success toast for unlike
-      showToast('Haber beğenisi kaldırıldı', 'unlike', '💔');
+      showToast(t('news.unlikedSuccessfully'), 'unlike', '💔');
 
     } catch (error) {
       console.error('❌ Haber beğeni kaldırma hatası:', error);
@@ -706,7 +708,7 @@ const News = () => {
         {/* Header */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-            <h1 className="text-2xl font-bold text-blue-800 mb-2 md:mb-0">Güncel Haberler</h1>
+            <h1 className="text-2xl font-bold text-blue-800 mb-2 md:mb-0">{t('news.currentNews')}</h1>
           </div>
           {/* Beğendiğim Haberler Butonu */}
           <div className="mb-4 flex justify-end">
@@ -715,13 +717,13 @@ const News = () => {
               className="flex items-center px-5 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white rounded-full shadow-lg hover:from-pink-600 hover:to-red-600 transition-all duration-300 font-semibold text-base gap-2"
             >
               <span className="text-lg">❤️</span>
-              Beğendiğim Haberler
+                              {t('news.likedNews')}
               <span className="ml-2 bg-white/20 rounded-full px-2 py-1 text-xs">{likedNews.size}</span>
             </button>
           </div>
           
           <p className="text-gray-600 mb-6">
-            BinCard'ınızla ilgili haberler ve duyuruları keşfedin. Tüm haberlerimizi inceleyerek güncel gelişmelerden haberdar olun.
+                          {t('news.description')}
           </p>
 
           {/* Backend Bağlantı Durumu */}
@@ -747,7 +749,7 @@ const News = () => {
                   : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
               }`}
             >
-              Tümü
+              {t('news.all')}
             </button>
             
             {categories.map(category => (
@@ -825,7 +827,7 @@ const News = () => {
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent text-white p-3">
                   <span className="text-sm font-medium">
-                    Son geçerlilik: {campaign.validUntil}
+                    {t('news.validUntil')}: {campaign.validUntil}
                   </span>
                 </div>
               </div>
@@ -878,14 +880,14 @@ const News = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h3 className="text-xl font-bold text-gray-800 mb-2">
-              {activeCategory === 'all' ? 'Henüz haber bulunmuyor' : 'Bu kategoride haber bulunamadı'}
+              {activeCategory === 'all' ? t('news.noNewsYet') : t('news.noNewsInCategory')}
             </h3>
             <p className="text-gray-600 mb-4">
               {isOnline 
                 ? (activeCategory === 'all' 
-                   ? 'Backend\'den henüz haber gelmedi. Lütfen daha sonra tekrar kontrol edin.' 
-                   : 'Farklı bir kategori seçabilir veya daha sonra tekrar kontrol edebilirsiniz.')
-                : 'Backend bağlantısı kurulamadı. Lütfen internet bağlantınızı kontrol edin.'
+                   ? t('news.noNewsFromBackend') 
+                   : t('news.tryCategoryOrBack'))
+                : t('news.connectionError')
               }
             </p>
             {activeCategory !== 'all' && (
@@ -893,7 +895,7 @@ const News = () => {
                 onClick={() => setActiveCategory('all')}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
-                Tüm Haberleri Göster
+                {t('news.showAllNews')}
               </button>
             )}
           </div>
@@ -903,7 +905,7 @@ const News = () => {
         {filteredCampaigns.length > 0 && (
           <div className="text-center mt-6">
             <span className="inline-block bg-blue-50 px-6 py-3 rounded-full text-sm text-gray-600 border border-blue-100 font-medium">
-              📊 Toplam <strong>{filteredCampaigns.length}</strong> haber görüntüleniyor
+              📊 {t('news.totalNews')} <strong>{filteredCampaigns.length}</strong> {t('news.newsDisplayed')}
             </span>
           </div>
         )}
@@ -913,7 +915,7 @@ const News = () => {
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="mb-4 md:mb-0">
               <h3 className="text-xl font-bold mb-2">BinCard Mobil Uygulama İndirin</h3>
-              <p className="opacity-90">Haberlerden anında haberdar olmak ve özel duyuruları kaçırmamak için mobil uygulamayı indirin.</p>
+              <p className="opacity-90">{t('news.downloadApp')}</p>
             </div>
             <div className="flex gap-3">
               <button className="bg-white text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-50">
@@ -971,7 +973,7 @@ const News = () => {
                 <button
                   onClick={closeModal}
                   className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:text-gray-200 transition-all duration-300 transform hover:scale-110 hover:rotate-90 group"
-                  aria-label="Kapat"
+                  aria-label={t('news.close')}
                 >
                   <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -1074,7 +1076,7 @@ const News = () => {
                     <div className="flex flex-wrap items-center gap-4 mb-8 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl border border-gray-200 shadow-inner">
                       {selectedNews?.type && (
                         <div className="flex items-center text-sm bg-white rounded-full px-4 py-2 shadow-md hover:shadow-lg transition-shadow duration-200">
-                          <span className="font-semibold text-blue-600 mr-2">📂 Kategori:</span>
+                          <span className="font-semibold text-blue-600 mr-2">📂 {t('news.category')}:</span>
                           <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                             {selectedNews.type}
                           </span>
@@ -1142,7 +1144,7 @@ const News = () => {
                               </svg>
                             )}
                             <span className="text-sm">
-                              {selectedNews && likedNews.has(selectedNews.id) ? 'Beğenildi' : 'Beğen'}
+                              {selectedNews && likedNews.has(selectedNews.id) ? t('news.liked') : t('news.like')}
                             </span>
                           </button>
 
@@ -1169,7 +1171,7 @@ const News = () => {
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                             </svg>
-                            <span className="text-sm">Paylaş</span>
+                            <span className="text-sm">{t('news.share')}</span>
                           </button>
                         </div>
 
@@ -1182,7 +1184,7 @@ const News = () => {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                            Kapat
+                            {t('news.close')}
                           </span>
                         </button>
                       </div>

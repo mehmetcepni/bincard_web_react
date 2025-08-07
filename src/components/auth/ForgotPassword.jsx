@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AuthService from '../../services/auth.service';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import bincardLogo from '../../assets/bincard-logo.jpg';
 
 const ForgotPassword = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [telephone, setTelephone] = useState('');
   const [error, setError] = useState('');
@@ -19,7 +21,7 @@ const ForgotPassword = () => {
   }, [error]);
 
   const validate = () => {
-    if (!/^0[0-9]{10}$/.test(telephone)) return 'Telefon numarası 0 ile başlamalı ve 11 haneli olmalı';
+    if (!/^0[0-9]{10}$/.test(telephone)) return t('auth.phoneFormat');
     return '';
   };
 
@@ -95,21 +97,21 @@ const ForgotPassword = () => {
               className="w-full h-full object-cover"
             />
           </div>
-          <h1 className="text-3xl font-bold text-blue-700 tracking-tight">Şifre Sıfırlama</h1>
+          <h1 className="text-3xl font-bold text-blue-700 tracking-tight">{t('auth.resetPassword')}</h1>
         </div>
-        <p className="text-center text-gray-600 mb-4">Şifrenizi sıfırlamak için telefon numaranızı girin. Size bir doğrulama kodu göndereceğiz.</p>
+        <p className="text-center text-gray-600 mb-4">{t('auth.resetPasswordDescription')}</p>
         {error && (
           <div className="mb-4 text-red-600 bg-red-100 border border-red-200 rounded px-4 py-2 text-sm animate-shake">{error}</div>
         )}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">Telefon Numarası</label>
+                          <label className="block text-sm font-medium mb-1 text-gray-700">{t('auth.phoneNumber')}</label>
             <input
               type="tel"
               name="telephone"
               maxLength={11}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base bg-white"
-              placeholder="05xxxxxxxxx"
+                              placeholder={t('auth.phonePlaceholder')}
               value={telephone}
               onChange={e => setTelephone(e.target.value)}
               disabled={isSubmitting}
@@ -121,10 +123,10 @@ const ForgotPassword = () => {
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Gönderiliyor...' : 'Doğrulama Kodu Gönder'}
+            {isSubmitting ? t('auth.sending') : t('auth.sendVerificationCode')}
           </button>
           <div className="flex justify-center text-sm mt-2">
-            <Link to="/login" className="text-blue-600 hover:underline">Giriş sayfasına dön</Link>
+            <Link to="/login" className="text-blue-600 hover:underline">{t('auth.backToLogin')}</Link>
           </div>
         </form>
       </div>

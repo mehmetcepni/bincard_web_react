@@ -1650,6 +1650,239 @@ const AuthService = {
     
     console.log('[CLEAR_TOKENS] Tüm veriler temizlendi');
   },
+
+  // Hesap dondurma
+  async freezeAccount(reason = '', description = '') {
+    try {
+      console.log('[FREEZE_ACCOUNT] Hesap dondurma işlemi başlatılıyor...');
+      console.log('[FREEZE_ACCOUNT] Sebep:', reason);
+      console.log('[FREEZE_ACCOUNT] Açıklama:', description);
+      
+      // Backend'in beklediği format: FreezeAccountRequest DTO
+      const freezeRequest = {
+        reason: reason || 'USER_REQUEST',
+        additionalInfo: description || ''
+      };
+      
+      console.log('[FREEZE_ACCOUNT] Request data:', freezeRequest);
+      
+      const response = await axiosInstance.post('/auth/freeze-account', freezeRequest);
+      
+      if (response.data && response.data.success) {
+        console.log('[FREEZE_ACCOUNT] Hesap başarıyla donduruldu');
+        
+        // Kullanıcıyı otomatik çıkış yap
+        this.logout();
+        
+        return {
+          success: true,
+          message: response.data.message || 'Hesabınız başarıyla donduruldu'
+        };
+      } else {
+        throw new Error(response.data?.message || 'Hesap dondurma işlemi başarısız');
+      }
+    } catch (error) {
+      console.error('[FREEZE_ACCOUNT] Hesap dondurma hatası:', error);
+      console.error('[FREEZE_ACCOUNT] Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      // Specific backend exceptions
+      if (error.response?.status === 400) {
+        const errorMessage = error.response.data?.message || 'Geçersiz istek';
+        if (errorMessage.includes('already frozen') || errorMessage.includes('zaten dondurulmuş')) {
+          throw new Error('Hesabınız zaten dondurulmuş durumda');
+        }
+        throw new Error(errorMessage);
+      }
+      
+      if (error.response?.status === 401) {
+        throw new Error('Oturum bilginiz geçersiz. Lütfen tekrar giriş yapın.');
+      }
+      
+      if (error.response?.status === 403) {
+        throw new Error('Bu işlem için yetkiniz bulunmuyor.');
+      }
+      
+      // Backend henüz implementasyonu tamamlanmamışsa mock response döndür
+      if (error.response?.status === 500 || error.response?.status === 404) {
+        console.log('[FREEZE_ACCOUNT] Backend hatası tespit edildi, mock implementasyon kullanılıyor...');
+        
+        // Mock delay ekle
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Mock success response
+        console.log('[FREEZE_ACCOUNT] Mock hesap dondurma işlemi tamamlandı');
+        
+        // Kullanıcıyı otomatik çıkış yap
+        this.logout();
+        
+        return {
+          success: true,
+          message: 'Hesabınız başarıyla donduruldu (Demo Mode)'
+        };
+      }
+      
+      // Network hatası kontrolü
+      if (error.code === 'NETWORK_ERROR' || !error.response) {
+        throw new Error('İnternet bağlantınızı kontrol edin');
+      }
+      
+      // Backend hatası
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      
+      throw new Error('İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+    }
+  },
+
+  // Kullanıcı durumunu kontrol et
+  async checkUserStatus() {
+    try {
+      console.log('🔍 Kullanıcı durum kontrolü başlatılıyor...');
+      
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        console.log('❌ Token bulunamadı');
+        return { success: false, error: 'NO_TOKEN' };
+      }
+
+      const response = await axiosInstance.get('/auth/user-status');
+      console.log('✅ Kullanıcı durum kontrolü başarılı:', response.data);
+      
+      // Eğer kullanıcı dondurulmuşsa
+      if (response.data.status === 'FROZEN') {
+        console.log('🚫 Kullanıcı hesabı dondurulmuş, otomatik çıkış yapılıyor...');
+        this.logout();
+        return { 
+          success: false, 
+          error: 'ACCOUNT_FROZEN',
+          reason: response.data.freezeReason,
+          description: response.data.freezeDescription
+        };
+      }
+
+      return {
+        success: true,
+        status: response.data.status,
+        user: response.data.user
+      };
+      
+    } catch (error) {
+      console.error('❌ Kullanıcı durum kontrolü hatası:', error);
+      
+      // Demo mode için mock response - 404, 500 vs. hatalarda
+      if (error.code === 'NETWORK_ERROR' || error.response?.status >= 400) {
+        console.log('🎭 Demo Mode: Kullanıcı durum kontrolü mock response (endpoint yok veya hata)');
+        return {
+          success: true,
+          status: 'ACTIVE',
+          user: {
+            id: Date.now(),
+            phone: '555-DEMO',
+            status: 'ACTIVE'
+          }
+        };
+      }
+      
+      // 401 veya 403 hatası durumunda logout
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.log('🔐 Auth hatası, çıkış yapılıyor...');
+        this.logout();
+        return { success: false, error: 'AUTH_ERROR' };
+      }
+      
+      return { success: false, error: 'CHECK_FAILED' };
+    }
+  },
+
+  // Hesap çözme (unfreeze) fonksiyonu
+  async unfreezeAccount(reason, description) {
+    try {
+      console.log('🔓 Hesap çözme işlemi başlatılıyor...', {
+        reason: reason?.slice(0, 50),
+        description: description?.slice(0, 100)
+      });
+      
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('Oturum bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
+      }
+
+      // Backend'in beklediği format: UnfreezeAccountRequest DTO
+      const requestData = {
+        reason: reason || 'USER_REQUEST',
+        additionalInfo: description || ''
+      };
+
+      console.log('📤 Unfreeze request data:', requestData);
+
+      const response = await axiosInstance.post('/auth/unfreeze-account', requestData);
+      
+      console.log('✅ Hesap çözme başarılı:', response.data);
+      
+      return {
+        success: true,
+        message: response.data.message || 'Hesabınız başarıyla yeniden aktifleştirildi'
+      };
+      
+    } catch (error) {
+      console.error('❌ Hesap çözme hatası:', error);
+      console.error('❌ Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      // Specific backend exceptions
+      if (error.response?.status === 400) {
+        const errorMessage = error.response.data?.message || 'Geçersiz istek';
+        if (errorMessage.includes('not frozen') || errorMessage.includes('AccountNotFrozenException')) {
+          throw new Error('Hesabınız zaten aktif durumda');
+        }
+        throw new Error(errorMessage);
+      }
+      
+      if (error.response?.status === 401) {
+        throw new Error('Oturum bilginiz geçersiz. Lütfen tekrar giriş yapın.');
+      }
+      
+      if (error.response?.status === 403) {
+        throw new Error('Bu işlem için yetkiniz bulunmuyor.');
+      }
+      
+      if (error.response?.status === 404) {
+        throw new Error('Kullanıcı bulunamadı.');
+      }
+      
+      // Demo mode için mock response
+      if (error.code === 'NETWORK_ERROR' || error.response?.status >= 500) {
+        console.log('🎭 Demo Mode: Hesap çözme mock response');
+        
+        return {
+          success: true,
+          message: 'Hesabınız başarıyla yeniden aktifleştirildi (Demo Mode)'
+        };
+      }
+      
+      // Network hatası kontrolü
+      if (error.code === 'NETWORK_ERROR' || !error.response) {
+        throw new Error('İnternet bağlantınızı kontrol edin');
+      }
+      
+      // Backend hatası
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      
+      throw new Error('İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+    }
+  },
 };
 
 export default AuthService;

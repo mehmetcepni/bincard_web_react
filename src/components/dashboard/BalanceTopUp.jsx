@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AuthService from '../../services/auth.service';
 import WalletService from '../../services/wallet.service';
 import { toast } from 'react-toastify';
 
 const BalanceTopUp = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ const BalanceTopUp = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const authResult = await AuthService.showLoginConfirmModal('Bakiye yükleme işlemini', navigate);
+        const authResult = await AuthService.showLoginConfirmModal(t('wallet.topUpOperation'), navigate);
         if (!authResult && !AuthService.isAuthenticated()) {
           navigate('/dashboard');
         }
@@ -44,14 +46,14 @@ const BalanceTopUp = () => {
       // Ödeme penceresinin kapanıp kapanmadığını kontrol et
       checkInterval = setInterval(() => {
         if (paymentWindowRef.closed) {
-          console.log('[BALANCE_TOPUP] Ödeme penceresi kapandı, cüzdan sekmesine yönlendiriliyor...');
+          console.log('[BALANCE_TOPUP] ' + t('wallet.paymentWindowClosed'));
           clearInterval(checkInterval);
           setPaymentWindowRef(null);
           setIsTopUpLoading(false);
           
           // Kısa bir gecikme sonrası cüzdan sekmesine yönlendir
           setTimeout(() => {
-            toast.success('Ödeme işlemi tamamlandı! Cüzdan sekmesine yönlendiriliyorsunuz...');
+            toast.success(t('wallet.paymentCompleted'));
             navigate('/wallet');
           }, 1000);
         }
@@ -89,7 +91,7 @@ const BalanceTopUp = () => {
       const result = await WalletService.topUpWallet({ amount: topUpAmount, cardInfo });
       
       if (result.data && result.data.startsWith('<!doctype html')) {
-        toast.success('3D doğrulama başlatıldı. Ödeme penceresini takip edin...');
+        toast.success(t('wallet.payment3DStarted'));
         
         // Yeni pencerede 3D secure sayfasını aç ve referansını sakla
         const paymentWindow = window.open('', '_blank');
@@ -113,7 +115,7 @@ const BalanceTopUp = () => {
         window.addEventListener('focus', handleFocus);
         
       } else {
-        toast.success(result.message || 'Bakiye yükleme işlemi başarılı!');
+        toast.success(result.message || t('wallet.topUpSuccessful'));
         setIsTopUpLoading(false);
         // Eğer 3D secure olmadan direkt başarılı olduysa da cüzdan sekmesine yönlendir
         setTimeout(() => {
@@ -121,7 +123,7 @@ const BalanceTopUp = () => {
         }, 1500);
       }
     } catch (err) {
-      toast.error(err.message || 'Para yükleme işlemi başarısız.');
+      toast.error(err.message || t('wallet.topUpFailed'));
       setIsTopUpLoading(false);
     }
   };
@@ -192,14 +194,14 @@ const BalanceTopUp = () => {
           <form onSubmit={handleTopUp} className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
-                <span>💳</span>Kart Bilgileri
+                <span>💳</span>{t('wallet.cardInfo')}
               </h2>
-              <p className="text-gray-600">Güvenli ödeme için kart bilgilerinizi girin</p>
+              <p className="text-gray-600">{t('wallet.cardInfoDescription')}</p>
             </div>
 
             {/* Tutar */}
             <div className="bg-gray-50 rounded-xl p-6">
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Yüklenecek Tutar</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">{t('wallet.topUpAmount')}</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">₺</span>
                 <input 
@@ -209,7 +211,7 @@ const BalanceTopUp = () => {
                   value={topUpAmount} 
                   onChange={e => setTopUpAmount(e.target.value)} 
                   className="w-full pl-8 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-xl font-semibold bg-white" 
-                  placeholder="0,00"
+                  placeholder={t('wallet.enterAmount')}
                   required 
                   disabled={isTopUpLoading} 
                 />
@@ -233,7 +235,7 @@ const BalanceTopUp = () => {
             {/* Kart Bilgileri */}
             <div className="grid grid-cols-1 gap-6">
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700">Kart Numarası</label>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">{t('wallet.cardNumber')}</label>
                 <input 
                   type="text" 
                   maxLength={16} 
@@ -252,7 +254,7 @@ const BalanceTopUp = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700">Kart Sahibi</label>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">{t('wallet.cardHolder')}</label>
                 <input 
                   type="text" 
                   value={cardInfo.cardHolder} 
@@ -263,7 +265,7 @@ const BalanceTopUp = () => {
                     }
                   }} 
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-lg bg-white" 
-                  placeholder="KART SAHİBİ"
+                  placeholder={t('wallet.cardHolder').toUpperCase()}
                   required 
                   disabled={isTopUpLoading} 
                 />
@@ -271,7 +273,7 @@ const BalanceTopUp = () => {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">SKT Ay</label>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">{t('wallet.expiryMonth')}</label>
                   <input 
                     type="text" 
                     maxLength={2} 
@@ -289,7 +291,7 @@ const BalanceTopUp = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">SKT Yıl</label>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">{t('wallet.expiryYear')}</label>
                   <input 
                     type="text" 
                     maxLength={2} 
@@ -307,7 +309,7 @@ const BalanceTopUp = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">CVC</label>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">{t('wallet.cvv')}</label>
                   <input 
                     type="text" 
                     maxLength={4} 
@@ -332,9 +334,9 @@ const BalanceTopUp = () => {
               <div className="flex items-start gap-3">
                 <div className="text-green-500 text-xl">🔒</div>
                 <div>
-                  <h3 className="font-semibold text-green-800">Güvenli Ödeme</h3>
+                  <h3 className="font-semibold text-green-800">{t('wallet.securePayment')}</h3>
                   <p className="text-green-700 text-sm mt-1">
-                    Ödemeniz SSL şifrelemesi ile korunmaktadır. Kart bilgileriniz güvenli sunucularda işlenir ve saklanmaz.
+                    {t('wallet.securePaymentDescription')}
                   </p>
                 </div>
               </div>
@@ -349,12 +351,12 @@ const BalanceTopUp = () => {
               {isTopUpLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                  İşleminiz Gerçekleştiriliyor...
+                  {t('common.loading')}
                 </>
               ) : (
                 <>
                   <span>💳</span>
-                  Bakiye Yükle
+                  {t('wallet.continuePayment')}
                 </>
               )}
             </button>
@@ -366,7 +368,7 @@ const BalanceTopUp = () => {
               className="w-full py-3 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
               disabled={isTopUpLoading}
             >
-              İptal
+              {t('common.cancel')}
             </button>
           </form>
         </div>
@@ -374,7 +376,7 @@ const BalanceTopUp = () => {
         {/* Bilgilendirme */}
         <div className="mt-8 text-center">
           <div className="inline-block bg-blue-50 border border-blue-200 rounded-xl p-4 text-blue-800 text-sm shadow">
-            <strong>ℹ️ Bilgi:</strong> Yüklediğiniz bakiye anında kartınıza aktarılacak ve tüm ulaşım hizmetlerinde kullanabilirsiniz.
+            <strong>ℹ️ {t('wallet.topUpInfo')}</strong> {t('wallet.topUpInfoMessage')}
           </div>
         </div>
       </div>

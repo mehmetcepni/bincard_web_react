@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import 'react-toastify/dist/ReactToastify.css';
 import AuthService from '../../services/auth.service';
 import WalletService from '../../services/wallet.service';
@@ -17,23 +18,25 @@ import Settings from './Settings.jsx';
 import TokenDebug from '../debug/TokenDebug.jsx';
 import bincardLogo from '../../assets/bincard-logo.jpg';
 
-// Yalın menü öğeleri
-const menuItems = [
-  { text: 'Ana Sayfa', path: 'dashboard', key: 'dashboard' },
-  { text: 'Cüzdan', path: 'wallet', key: 'wallet' },
-  { text: 'Duraklar', path: 'routes', key: 'routes' },
-  { text: 'Rotalar', path: 'bus-routes', key: 'bus-routes' },
-  { text: 'Ödeme Noktaları', path: 'payment-points', key: 'payment-points' },
-  { text: 'İşlem Geçmişi', path: 'history', key: 'history' },
-  { text: 'Haberler', path: 'news', key: 'news' },
-  { text: 'Favoriler', path: 'liked-news', key: 'liked-news' },
-  { text: 'Destek', path: 'feedback', key: 'feedback' },
-  { text: 'Ayarlar', path: 'settings', key: 'settings' },
-];
-
 const Dashboard = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Menü öğeleri - Çeviri anahtarları ile
+  const menuItems = [
+    { text: t('navigation.dashboard'), path: 'dashboard', key: 'dashboard' },
+    { text: t('navigation.wallet'), path: 'wallet', key: 'wallet' },
+    { text: t('navigation.stations'), path: 'routes', key: 'routes' },
+    { text: t('navigation.routes'), path: 'bus-routes', key: 'bus-routes' },
+    { text: t('navigation.paymentPoints'), path: 'payment-points', key: 'payment-points' },
+    { text: 'İşlem Geçmişi', path: 'history', key: 'history' },
+    { text: t('navigation.news'), path: 'news', key: 'news' },
+    { text: 'Favoriler', path: 'liked-news', key: 'liked-news' },
+    { text: t('navigation.feedback'), path: 'feedback', key: 'feedback' },
+    { text: t('navigation.settings'), path: 'settings', key: 'settings' },
+  ];
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -80,12 +83,43 @@ const Dashboard = () => {
 
   // Auth durumunu kontrol et
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
+        console.log('🔍 Dashboard: Auth kontrolü başlatılıyor...');
         const authStatus = AuthService.isAuthenticated();
+        console.log('🔍 Dashboard: Auth status:', authStatus);
         setIsAuthenticated(authStatus);
         
         if (authStatus) {
+          // Kullanıcı durum kontrolü geçici olarak devre dışı (backend endpoint henüz yok)
+          console.log('⚠️ Dashboard: Kullanıcı durum kontrolü geçici olarak devre dışı');
+          
+          // // Kullanıcı durumunu kontrol et
+          // const statusCheck = await AuthService.checkUserStatus();
+          // console.log('🔍 Dashboard: Status check result:', statusCheck);
+          
+          // if (!statusCheck.success) {
+          //   if (statusCheck.error === 'ACCOUNT_FROZEN') {
+          //     // Hesap dondurulmuşsa toast göster ve logout
+          //     console.log('🚫 Dashboard: Hesap donmuş, çıkış yapılıyor...');
+          //     toast.error(`Hesabınız dondurulmuştur. Sebep: ${statusCheck.reason || 'Belirtilmemiş'}`);
+          //     setIsAuthenticated(false);
+          //     setUser(null);
+          //     setWalletData(null);
+          //     return;
+          //   } else if (statusCheck.error === 'AUTH_ERROR') {
+          //     // Auth hatası durumunda logout zaten yapıldı
+          //     console.log('🔐 Dashboard: Auth hatası, çıkış yapılıyor...');
+          //     setIsAuthenticated(false);
+          //     setUser(null);
+          //     setWalletData(null);
+          //     return;
+          //   } else if (statusCheck.error === 'CHECK_FAILED' || statusCheck.error === 'NO_TOKEN') {
+          //     // Status kontrolü başarısız ama oturum devam etsin (backend endpoint henüz yok)
+          //     console.warn('⚠️ Dashboard: Kullanıcı durum kontrolü başarısız, ancak oturum devam ediyor:', statusCheck.error);
+          //   }
+          // }
+          
           // Kullanıcı bilgilerini al
           try {
             const savedProfile = localStorage.getItem('lastKnownProfile');
@@ -108,7 +142,7 @@ const Dashboard = () => {
     };
     
     checkAuth();
-    const interval = setInterval(checkAuth, 5000);
+    const interval = setInterval(checkAuth, 30000); // 30 saniyede bir kontrol et (önceden 5000ms idi)
     return () => clearInterval(interval);
   }, [navigate, location.pathname]);
 
@@ -140,10 +174,10 @@ const Dashboard = () => {
       if ((item.key === 'liked-news' || item.key === 'payment-points' || item.key === 'settings') && !AuthService.isAuthenticated()) {
         const result = await AuthService.showLoginConfirmModal(
           item.key === 'liked-news'
-            ? 'Favori haberleri görüntüleme işlemini'
+            ? t('dashboard.viewLikedNewsOperation')
             : item.key === 'payment-points'
-              ? 'Yakındaki ödeme noktalarını görüntüleme işlemini'
-              : 'Ayarları görüntüleme işlemini',
+              ? t('dashboard.viewPaymentPointsOperation')
+              : t('dashboard.viewSettingsOperation'),
           navigate
         );
         return;
@@ -251,13 +285,27 @@ const Dashboard = () => {
               ))}
             </nav>
 
+            {/* Language Switcher */}
+            <div className="hidden md:flex items-center">
+              <div className="relative">
+                <select
+                  value={i18n.language}
+                  onChange={(e) => i18n.changeLanguage(e.target.value)}
+                  className="bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:border-[#005bac] focus:border-[#005bac] focus:outline-none transition-colors"
+                >
+                  <option value="tr">🇹🇷 TR</option>
+                  <option value="en">🇺🇸 EN</option>
+                </select>
+              </div>
+            </div>
+
             {/* User Menu */}
             <div className="flex items-center space-x-4">
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                title={isDarkMode ? 'Açık Moda Geç' : 'Koyu Moda Geç'}
+                title={isDarkMode ? t('dashboard.switchToLightMode') : t('dashboard.switchToDarkMode')}
               >
                 {isDarkMode ? (
                   <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
@@ -276,13 +324,13 @@ const Dashboard = () => {
                     <button
                       onClick={() => handleNavigation({ key: 'settings', path: 'settings' })}
                       className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
-                      title="Profil Ayarları"
+                      title={t('profile.title')}
                     >
                       <div className="w-8 h-8 bg-[#005bac] rounded-full flex items-center justify-center text-white text-sm font-medium group-hover:bg-[#004690] transition-colors">
                         {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
-                        Hoş geldin, {user?.firstName || 'Kullanıcı'}
+                        {t('common.welcome')}, {user?.firstName || t('common.user')}
                       </div>
                     </button>
                   </div>
@@ -290,7 +338,7 @@ const Dashboard = () => {
                     onClick={handleAuthAction}
                     className="btn-secondary py-2 px-4 text-sm"
                   >
-                    Çıkış Yap
+                    {t('auth.logout')}
                   </button>
                 </div>
               ) : (
@@ -299,13 +347,13 @@ const Dashboard = () => {
                     onClick={() => navigate('/login')}
                     className="btn-outline py-2 px-4 text-sm"
                   >
-                    Giriş Yap
+                    {t('auth.login')}
                   </button>
                   <button
                     onClick={() => navigate('/register')}
                     className="btn-primary py-2 px-4 text-sm"
                   >
-                    Kayıt Ol
+                    {t('auth.register')}
                   </button>
                 </div>
               )}
@@ -365,9 +413,46 @@ const Dashboard = () => {
                   }`}
                 >
                   <span className="text-lg">👤</span>
-                  <span className="font-medium">Profil</span>
+                  <span className="font-medium">{t('profile.title')}</span>
                 </button>
               )}
+
+              {/* Language Switcher - Mobile */}
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+                <div className="px-4 py-3">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <span className="text-lg">🌍</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('settings.language')}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { code: 'tr', name: t('common.turkish'), flag: '🇹🇷' },
+                      { code: 'en', name: t('common.english'), flag: '🇺🇸' }
+                    ].map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          i18n.changeLanguage(lang.code);
+                          setSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                          i18n.language === lang.code
+                            ? 'bg-[#005bac] text-white'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <span className="text-lg">{lang.flag}</span>
+                        <span className="font-medium">{lang.name}</span>
+                        {i18n.language === lang.code && (
+                          <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </nav>
@@ -390,7 +475,7 @@ const Dashboard = () => {
           >
             {/* Modal Header */}
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Haber Detayı</h2>
+                              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Haber Detayı</h2>
               <button
                 onClick={closeNewsModal}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -452,7 +537,7 @@ const Dashboard = () => {
 
               {/* Paylaş Butonları */}
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Bu haberi paylaş</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Bu Haberi Paylaş</h3>
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
@@ -462,7 +547,7 @@ const Dashboard = () => {
                         navigator.share({ title: text, url });
                       } else {
                         navigator.clipboard.writeText(`${text} ${url}`);
-                        toast.success('Link kopyalandı!');
+                        toast.success('Link kopyalandı');
                       }
                     }}
                     className="flex items-center gap-2 px-4 py-2 bg-[#005bac] text-white rounded-lg hover:bg-[#004690] transition-colors"
@@ -470,7 +555,7 @@ const Dashboard = () => {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                     </svg>
-                    Paylaş
+                                          Paylaş
                   </button>
                 </div>
               </div>
@@ -484,6 +569,7 @@ const Dashboard = () => {
 
 // KonyaKart stilinde Ana Dashboard Bileşeni
 const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onNewsClick }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [newsData, setNewsData] = useState([]);
   const [newsLoading, setNewsLoading] = useState(true);
@@ -994,15 +1080,14 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
   // Ana kart verileri
   const mainCards = [
     {
-      title: 'Bakiye',
+      title: t('wallet.balance'),
       value: isAuthenticated 
         ? isLoadingWallet 
-          ? 'Yükleniyor...' 
+          ? t('common.loading')
           : walletData 
             ? formatBalance(walletData.balance || walletData.totalBalance || walletData.amount || 0)
             : '₺0,00'
-        : 'Giriş Yapın',
-      icon: '�',
+        : t('auth.login'),
       color: 'bg-gradient-to-br from-[#005bac] to-[#004690]',
       onClick: () => isAuthenticated ? navigate('/wallet') : navigate('/login')
     },
@@ -1029,8 +1114,8 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
   // Hızlı işlemler
   const quickActions = [
     {
-      title: 'Bakiye Yükle',
-      description: 'Kartınıza hızlıca bakiye yükleyin',
+      title: t('wallet.topUp'),
+      description: t('wallet.topUpDescription'),
       action: () => isAuthenticated ? navigate('/balance-topup') : navigate('/login')
     },
     {
@@ -1054,7 +1139,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
 
   const recentTransactions = [
     { id: 1, type: 'Otobüs Bilet', amount: '-₺4,25', date: '15 Ara', location: 'Karatay - Selçuklu' },
-    { id: 2, type: 'Bakiye Yükleme', amount: '+₺50,00', date: '14 Ara', location: 'Online' },
+            { id: 2, type: 'Bakiye Yükleme', amount: '+₺50,00', date: '14 Ara', location: 'Online' },
     { id: 3, type: 'Otobüs Bilet', amount: '-₺4,25', date: '14 Ara', location: 'Selçuklu - Meram' },
     { id: 4, type: 'Otobüs Bilet', amount: '-₺4,25', date: '13 Ara', location: 'Meram - Karatay' },
   ];
@@ -1756,7 +1841,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
               <div className="card p-6 text-center">
                 <div className="text-4xl mb-4">📱</div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Dijital Takip</h3>
-                <p className="text-gray-600 dark:text-gray-400">Bakiyenizi, işlemlerinizi ve yolculuk geçmişinizi online takip edin.</p>
+                <p className="text-gray-600 dark:text-gray-400">Tüm harcamalarınızı dijital ortamda takip edin ve analiz edin.</p>
               </div>
             </div>
           </section>

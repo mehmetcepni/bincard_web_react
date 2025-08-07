@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 
-const FEEDBACK_TYPES = [
-  { id: 'SUGGESTION', label: 'Öneri' },
-  { id: 'COMPLAINT', label: 'Şikayet' },
-  { id: 'TECHNICAL_ISSUE', label: 'Teknik Sorun' },
-  { id: 'OTHER', label: 'Diğer' },
-];
-
 const Feedback = () => {
+  const { t } = useTranslation();
+
+  const FEEDBACK_TYPES = [
+    { id: 'SUGGESTION', label: t('feedback.types.SUGGESTION') },
+    { id: 'COMPLAINT', label: t('feedback.types.COMPLAINT') },
+    { id: 'TECHNICAL_ISSUE', label: t('feedback.types.TECHNICAL_ISSUE') },
+    { id: 'OTHER', label: t('feedback.types.OTHER') },
+  ];
+
   const [type, setType] = useState('SUGGESTION');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -33,15 +35,15 @@ const Feedback = () => {
         credentials: 'include',
         body: formData,
       });
-      if (!res.ok) throw new Error('Geri bildirim gönderilemedi');
+      if (!res.ok) throw new Error(t('feedback.error'));
       setSubmitted(true);
       setSubject('');
       setMessage('');
       setType('SUGGESTION');
       setPhoto(null);
-      toast.success('Geri bildiriminiz başarıyla gönderildi!');
+      toast.success(t('feedback.success'));
     } catch (err) {
-      toast.error(err.message || 'Bir hata oluştu.');
+      toast.error(err.message || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -51,15 +53,15 @@ const Feedback = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-6">
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">💬 Geri Bildirim</h1>
-          <p className="text-gray-600">Görüşleriniz bizim için değerli. Lütfen geri bildiriminizi iletin.</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('feedback.title')}</h1>
+          <p className="text-gray-600">{t('feedback.subtitle')}</p>
         </div>
         {submitted && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
               <span className="text-green-600 text-xl mr-3">✅</span>
               <p className="text-green-800 font-medium">
-                Geri bildiriminiz başarıyla gönderildi! Teşekkür ederiz.
+                {t('feedback.successMessage')}
               </p>
             </div>
           </div>
@@ -67,7 +69,7 @@ const Feedback = () => {
         <div className="bg-white rounded-xl shadow-md p-6">
           <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Geri Bildirim Türü</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('feedback.type')}</label>
               <div className="flex flex-wrap gap-3">
                 {FEEDBACK_TYPES.map((t) => (
                   <button
@@ -83,29 +85,29 @@ const Feedback = () => {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Başlık</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('feedback.subject')}</label>
               <input
                 type="text"
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Kısa bir başlık yazın..."
+                placeholder={t('feedback.placeholders.subject')}
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mesajınız</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('feedback.message')}</label>
               <textarea
                 rows={6}
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Geri bildiriminizi detaylıca yazın..."
+                placeholder={t('feedback.placeholders.message')}
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Fotoğraf veya Video (isteğe bağlı)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('feedback.photo')}</label>
               <input
                 type="file"
                 accept="image/*,video/*"
@@ -122,7 +124,7 @@ const Feedback = () => {
               disabled={loading}
             >
               <span>📤</span>
-              <span>{loading ? 'Gönderiliyor...' : 'Geri Bildirimi Gönder'}</span>
+              <span>{loading ? t('feedback.submitting') : t('feedback.submit')}</span>
             </button>
           </form>
         </div>
