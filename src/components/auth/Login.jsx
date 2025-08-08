@@ -25,6 +25,11 @@ const Login = () => {
   const [verifyCode, setVerifyCode] = useState('');
   const [form, setForm] = useState({ telephone: '', password: '' });
   const [isResending, setIsResending] = useState(false);
+  
+  // Hesap aktifleştirme modal state'leri
+  const [showUnfreezeModal, setShowUnfreezeModal] = useState(false);
+  const [unfreezeData, setUnfreezeData] = useState({ telephone: '', password: '', note: '' });
+  const [isUnfreezing, setIsUnfreezing] = useState(false);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -141,6 +146,19 @@ const Login = () => {
         } else if (errorMessage.includes('IncorrectPasswordException') || 
                    errorMessage.includes('şifre hatalı')) {
           errorMessage = 'Girilen şifre hatalı. Lütfen şifrenizi kontrol edin.';
+        } else if (errorMessage.includes('AccountFrozenException') || 
+                   errorMessage.includes('Hesap kilitli') ||
+                   errorMessage.includes('frozen')) {
+          // Hesap frozen durumu - Modal göster
+          setUnfreezeData({ 
+            telephone: form.telephone, 
+            password: form.password, 
+            note: '' 
+          });
+          setShowUnfreezeModal(true);
+          setError('');
+          setIsSubmitting(false);
+          return;
         } else if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
           errorMessage = 'Telefon numarası veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.';
         } else if (!errorMessage || errorMessage === 'undefined') {
@@ -155,6 +173,52 @@ const Login = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Hesap aktifleştirme fonksiyonu
+  const handleUnfreezeAccount = async () => {
+    if (!unfreezeData.telephone || !unfreezeData.password) {
+      toast.error('Telefon numarası ve şifre gerekli.', {
+        position: 'top-center'
+      });
+      return;
+    }
+
+    setIsUnfreezing(true);
+    
+    try {
+      let telephone = unfreezeData.telephone;
+      if (!telephone.startsWith('+90')) {
+        telephone = '+90' + telephone.replace(/^0/, '');
+      }
+
+      const result = await AuthService.unfreezeAccount(telephone, unfreezeData.password, unfreezeData.note);
+      
+      if (result && result.success) {
+        toast.success(result.message || 'Hesabınız başarıyla aktifleştirildi!', {
+          position: 'top-center',
+          autoClose: 3000
+        });
+        
+        setShowUnfreezeModal(false);
+        setUnfreezeData({ telephone: '', password: '', note: '' });
+        
+        // 2 saniye bekle ve normal giriş yap
+        setTimeout(() => {
+          handleSubmit({ preventDefault: () => {} });
+        }, 2000);
+      } else {
+        throw new Error(result?.message || 'Hesap aktifleştirme başarısız');
+      }
+    } catch (error) {
+      console.error('Hesap aktifleştirme hatası:', error);
+      toast.error(error.message || 'Hesap aktifleştirme sırasında hata oluştu', {
+        position: 'top-center',
+        autoClose: 5000
+      });
+    } finally {
+      setIsUnfreezing(false);
     }
   };
 

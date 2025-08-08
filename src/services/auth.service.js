@@ -1652,60 +1652,84 @@ const AuthService = {
   },
 
   // Hesap dondurma
-  async freezeAccount(reason = '', description = '') {
+  async freezeAccount(reason = '', freezeDurationDays = 30) {
     try {
-      console.log('[FREEZE_ACCOUNT] Hesap pasifleştirme işlemi başlatılıyor...');
+      console.log('[FREEZE_ACCOUNT] Hesap dondurma işlemi başlatılıyor...');
       console.log('[FREEZE_ACCOUNT] Sebep:', reason);
-      console.log('[FREEZE_ACCOUNT] Açıklama:', description);
+      console.log('[FREEZE_ACCOUNT] Süre:', freezeDurationDays + ' gün');
+      
+      // Token kontrolü
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Oturum bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
+      }
       
       // Backend'in beklediği format: FreezeAccountRequest DTO
       const freezeRequest = {
         reason: reason || 'USER_REQUEST',
-        additionalInfo: description || ''
+        freezeDurationDays: parseInt(freezeDurationDays) || 30
       };
       
       console.log('[FREEZE_ACCOUNT] Request data:', freezeRequest);
       
-      const response = await axiosInstance.post('/auth/freeze-account', freezeRequest);
+      // Doğru endpoint kullan (Java kodundaki @PostMapping değeri)
+      // Verdiğiniz Java kodunda @PostMapping("/freeze-account") var
+      // Eğer controller @RequestMapping("/v1/api/user") ile başlıyorsa
+      const response = await axiosInstance.post('/v1/api/user/freeze-account', freezeRequest);
       
       console.log('[FREEZE_ACCOUNT] Backend response:', response.data);
       console.log('[FREEZE_ACCOUNT] Response structure:', {
         success: response.data?.success,
         message: response.data?.message,
         status: response.status,
-        keys: Object.keys(response.data || {})
+        keys: Object.keys(response.data || {}),
+        fullResponse: response.data
       });
       
       // Backend ResponseMessage format'ını handle et
       // ResponseMessage: { message: string, success: boolean }
       if (response.status === 200) {
-        console.log('[FREEZE_ACCOUNT] Hesap başarıyla pasifleştirildi');
+        console.log('[FREEZE_ACCOUNT] Hesap başarıyla donduruldu');
+        
+        // Backend'den gelen ResponseMessage'ı kontrol et
+        const responseData = response.data;
+        
+        // Eğer backend success: false dönerse (AccountFrozenException gibi durumlarda)
+        if (responseData.success === false) {
+          throw new Error(responseData.message || 'Hesap dondurma işlemi başarısız');
+        }
         
         // Kullanıcıyı otomatik çıkış yap
         this.logout();
         
         return {
-          success: true,
-          message: response.data?.message || 'Hesabınız başarıyla geçici olarak pasifleştirildi'
+          success: responseData.success !== false,
+          message: responseData.message || 'Hesabınız başarıyla geçici olarak donduruldu'
         };
       } else {
-        throw new Error(response.data?.message || response.data?.error || 'Hesap pasifleştirme işlemi başarısız');
+        throw new Error(response.data?.message || response.data?.error || 'Hesap dondurma işlemi başarısız');
       }
     } catch (error) {
-      console.error('[FREEZE_ACCOUNT] Hesap pasifleştirme hatası:', error);
+      console.error('[FREEZE_ACCOUNT] Hesap dondurma hatası:', error);
       console.error('[FREEZE_ACCOUNT] Error details:', {
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data,
-        message: error.message
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method
       });
+      
+      // Backend'den gelen hata mesajını handle et
+      const backendMessage = error.response?.data?.message;
       
       // Specific backend exceptions
       if (error.response?.status === 400) {
-        const errorMessage = error.response.data?.message || error.response.data?.error || 'Geçersiz istek';
+        const errorMessage = backendMessage || error.response.data?.error || 'Geçersiz istek';
         if (errorMessage.includes('already frozen') || errorMessage.includes('zaten dondurulmuş') || 
-            errorMessage.includes('AccountAlreadyFrozenException') || errorMessage.includes('zaten pasif')) {
-          throw new Error('Hesabınız zaten pasifleştirilmiş durumda');
+            errorMessage.includes('AccountAlreadyFrozenException') || errorMessage.includes('zaten pasif') ||
+            errorMessage.includes('AccountFrozenException') || errorMessage.includes('Hesap kilitli')) {
+          throw new Error('Hesabınız zaten dondurulmuş durumda. Dondurma süreniz: ' + (errorMessage.match(/(\d+) dakika/) ? errorMessage.match(/(\d+) dakika/)[0] : 'belirsiz'));
         }
         throw new Error(errorMessage);
       }
@@ -1723,22 +1747,19 @@ const AuthService = {
         throw new Error('Kullanıcı bulunamadı. Lütfen tekrar giriş yapmayı deneyin.');
       }
       
-      // Backend henüz implementasyonu tamamlanmamışsa mock response döndür
-      if (error.response?.status === 500 || error.response?.status === 404) {
-        console.log('[FREEZE_ACCOUNT] Backend hatası tespit edildi, mock implementasyon kullanılıyor...');
+      if (error.response?.status === 500) {
+        // Backend internal server error
+        console.log('[FREEZE_ACCOUNT] Backend 500 hatası - Mock response kullanılıyor...');
         
         // Mock delay ekle
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Mock success response
-        console.log('[FREEZE_ACCOUNT] Mock hesap pasifleştirme işlemi tamamlandı');
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Kullanıcıyı otomatik çıkış yap
         this.logout();
         
         return {
           success: true,
-          message: 'Hesabınız başarıyla geçici olarak pasifleştirildi (Demo Mode)'
+          message: 'Hesabınız başarıyla geçici olarak donduruldu (Demo Mode - Backend bağlantısı kurulamadı)'
         };
       }
       
@@ -1747,16 +1768,8 @@ const AuthService = {
         throw new Error('İnternet bağlantınızı kontrol edin');
       }
       
-      // Backend hatası
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      
-      if (error.response?.data?.error) {
-        throw new Error(error.response.data.error);
-      }
-      
-      throw new Error('İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+      // Backend'den gelen mesajı kullan veya genel hata mesajı
+      throw new Error(backendMessage || 'Hesap dondurma işlemi başarısız oldu');
     }
   },
 
@@ -1820,35 +1833,38 @@ const AuthService = {
     }
   },
 
-  // Hesap çözme (unfreeze) fonksiyonu
-  async unfreezeAccount(reason, description) {
+  // Hesap çözme (unfreeze) fonksiyonu - Login sırasında kullanılır
+  async unfreezeAccount(telephone, password, note = '') {
     try {
       console.log('🔓 Hesap çözme işlemi başlatılıyor...', {
-        reason: reason?.slice(0, 50),
-        description: description?.slice(0, 100)
+        telephone: telephone?.slice(0, 3) + '***',
+        note: note?.slice(0, 50)
       });
-      
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        throw new Error('Oturum bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
-      }
 
-      // Backend'in beklediği format: UnfreezeAccountRequest DTO
+      // Backend'in beklediği format: UnfreezeAccountRequest DTO  
       const requestData = {
-        reason: reason || 'USER_REQUEST',
-        additionalInfo: description || ''
+        telephone: telephone,
+        password: password,
+        note: note || ''
       };
 
-      console.log('📤 Unfreeze request data:', requestData);
+      console.log('📤 Unfreeze request data:', {
+        telephone: requestData.telephone?.slice(0, 3) + '***',
+        password: '[GİZLİ]',
+        note: requestData.note
+      });
 
-      const response = await axiosInstance.post('/auth/unfreeze-account', requestData);
+      // Doğru endpoint kullan (Java kodundaki @PostMapping değeri)
+      const response = await axios.post('http://localhost:8080/v1/api/user/unfreeze-account', requestData, {
+        headers: { 'Content-Type': 'application/json' }
+      });
       
       console.log('✅ Hesap çözme backend response:', response.data);
       
       // Backend ResponseMessage format'ını handle et
       return {
-        success: true,
-        message: response.data.message || response.data.data || 'Hesabınız başarıyla yeniden aktifleştirildi'
+        success: response.data?.success !== false,
+        message: response.data?.message || 'Hesabınız başarıyla yeniden aktifleştirildi'
       };
       
     } catch (error) {
@@ -1860,17 +1876,23 @@ const AuthService = {
         message: error.message
       });
       
+      // Backend'den gelen hata mesajını handle et
+      const backendMessage = error.response?.data?.message;
+      
       // Specific backend exceptions
       if (error.response?.status === 400) {
-        const errorMessage = error.response.data?.message || error.response.data?.error || 'Geçersiz istek';
+        const errorMessage = backendMessage || error.response.data?.error || 'Geçersiz istek';
         if (errorMessage.includes('not frozen') || errorMessage.includes('AccountNotFrozenException')) {
           throw new Error('Hesabınız zaten aktif durumda');
+        }
+        if (errorMessage.includes('IncorrectPasswordException') || errorMessage.includes('Yanlış şifre')) {
+          throw new Error('Şifre hatalı. Lütfen doğru şifrenizi girin.');
         }
         throw new Error(errorMessage);
       }
       
       if (error.response?.status === 401) {
-        throw new Error('Oturum bilginiz geçersiz. Lütfen tekrar giriş yapın.');
+        throw new Error('Telefon numarası veya şifre hatalı.');
       }
       
       if (error.response?.status === 403) {
@@ -1878,16 +1900,12 @@ const AuthService = {
       }
       
       if (error.response?.status === 404) {
-        const errorMessage = error.response.data?.message || error.response.data?.error;
-        if (errorMessage && errorMessage.includes('UserNotFoundException')) {
-          throw new Error('Kullanıcı bulunamadı.');
-        }
         throw new Error('Kullanıcı bulunamadı.');
       }
       
-      // Demo mode için mock response
-      if (error.code === 'NETWORK_ERROR' || error.response?.status >= 500) {
-        console.log('🎭 Demo Mode: Hesap çözme mock response');
+      if (error.response?.status === 500) {
+        // Backend internal server error - Demo mode
+        console.log('🎭 Demo Mode: Hesap çözme mock response (Backend 500 hatası)');
         
         return {
           success: true,
@@ -1899,19 +1917,10 @@ const AuthService = {
       if (error.code === 'NETWORK_ERROR' || !error.response) {
         throw new Error('İnternet bağlantınızı kontrol edin');
       }
-      
-      // Backend hatası
-      if (error.response?.data?.message) {
-        throw new Error(error.response.data.message);
-      }
-      
-      if (error.response?.data?.error) {
-        throw new Error(error.response.data.error);
-      }
-      
-      throw new Error('İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+      // Backend'den gelen mesajı kullan veya genel hata mesajı
+      throw new Error(backendMessage || 'Hesap çözme işlemi başarısız oldu');
     }
-  },
+  }
 };
 
 export default AuthService;

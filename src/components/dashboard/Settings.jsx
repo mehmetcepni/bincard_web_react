@@ -169,14 +169,8 @@ const Settings = () => {
   // Hesap dondurma için state'ler
   const [showFreezeAccountModal, setShowFreezeAccountModal] = useState(false);
   const [freezeReason, setFreezeReason] = useState('');
-  const [freezeDescription, setFreezeDescription] = useState('');
+  const [freezeDuration, setFreezeDuration] = useState(30); // Gün cinsinden
   const [isFreezing, setIsFreezing] = useState(false);
-
-  // Hesap çözme için state'ler
-  const [showUnfreezeAccountModal, setShowUnfreezeAccountModal] = useState(false);
-  const [unfreezeReason, setUnfreezeReason] = useState('');
-  const [unfreezeDescription, setUnfreezeDescription] = useState('');
-  const [isUnfreezing, setIsUnfreezing] = useState(false);
 
   // Bildirim tipi simgesini belirleme
   const getNotificationIcon = (type) => {
@@ -643,12 +637,12 @@ const Settings = () => {
     setIsFreezing(true);
 
     try {
-      console.log('[SETTINGS] Hesap pasifleştirme başlatılıyor...', {
+      console.log('[SETTINGS] Hesap dondurma başlatılıyor...', {
         reason: freezeReason,
-        description: freezeDescription.slice(0, 50) + (freezeDescription.length > 50 ? '...' : '')
+        duration: freezeDuration + ' gün'
       });
       
-      const result = await AuthService.freezeAccount(freezeReason.trim(), freezeDescription.trim());
+      const result = await AuthService.freezeAccount(freezeReason.trim(), freezeDuration);
       
       console.log('[SETTINGS] Freeze account result:', result);
       
@@ -661,7 +655,7 @@ const Settings = () => {
         // Modal'ı kapat ve formu temizle
         setShowFreezeAccountModal(false);
         setFreezeReason('');
-        setFreezeDescription('');
+        setFreezeDuration(30);
         
         // 2 saniye bekle, ardından login sayfasına yönlendir
         setTimeout(() => {
@@ -708,14 +702,14 @@ const Settings = () => {
 
   const openFreezeAccountModal = () => {
     setFreezeReason('');
-    setFreezeDescription('');
+    setFreezeDuration(30);
     setShowFreezeAccountModal(true);
   };
 
   const closeFreezeAccountModal = () => {
     setShowFreezeAccountModal(false);
     setFreezeReason('');
-    setFreezeDescription('');
+    setFreezeDuration(30);
   };
 
   // Hesap çözme fonksiyonları
@@ -1075,6 +1069,22 @@ const Settings = () => {
                   <button className="btn-outline flex items-center justify-center gap-2">
                     📱 İki Faktörlü Doğrulama
                   </button>
+                </div>
+                
+                {/* Hesap Yönetimi */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">Hesap Yönetimi</h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    <button 
+                      onClick={openFreezeAccountModal}
+                      className="btn-outline-danger flex items-center justify-center gap-2 text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                    >
+                      🚫 Hesabı Dondur
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    � Hesap aktifleştirme işlemi giriş ekranından yapılabilir.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1483,18 +1493,6 @@ const Settings = () => {
                 >
                   🔄 Ayarları Sıfırla
                 </button>
-                <button
-                  onClick={openFreezeAccountModal}
-                  className="w-full bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                >
-                  🚫 {t('settings.freezeAccount')}
-                </button>
-                <button
-                  onClick={openUnfreezeAccountModal}
-                  className="w-full bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors"
-                >
-                  🔓 {t('settings.unfreezeAccount')}
-                </button>
               </div>
             </div>
           </div>
@@ -1867,21 +1865,22 @@ const Settings = () => {
                 </select>
               </div>
 
-              {/* Açıklama */}
+              {/* Dondurma süresi */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('settings.freezeDescription')}
+                  Dondurma Süresi (Gün) *
                 </label>
-                <textarea
-                  value={freezeDescription}
-                  onChange={(e) => setFreezeDescription(e.target.value)}
-                  placeholder={t('settings.freezeDescriptionPlaceholder')}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                  rows="3"
-                  maxLength="500"
+                <input
+                  type="number"
+                  value={freezeDuration}
+                  onChange={(e) => setFreezeDuration(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
+                  min="1"
+                  max="365"
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="30"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {freezeDescription.length}/500 {t('common.characters')}
+                  Minimum 1 gün, maksimum 365 gün
                 </p>
               </div>
             </div>
@@ -1924,19 +1923,6 @@ const Settings = () => {
       {showAvatarModal && <AvatarChangeModal />}
       {showNotificationDetailModal && <NotificationDetailModal />}
       {showFreezeAccountModal && <FreezeAccountModal />}
-      {showUnfreezeAccountModal && (
-        <UnfreezeAccountModal 
-          isOpen={showUnfreezeAccountModal}
-          onClose={closeUnfreezeAccountModal}
-          unfreezeReason={unfreezeReason}
-          setUnfreezeReason={setUnfreezeReason}
-          unfreezeDescription={unfreezeDescription}
-          setUnfreezeDescription={setUnfreezeDescription}
-          onConfirm={handleUnfreezeAccount}
-          isUnfreezing={isUnfreezing}
-          t={t}
-        />
-      )}
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

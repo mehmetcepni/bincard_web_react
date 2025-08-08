@@ -154,6 +154,48 @@ h3 {
   color: white;
 }
 
+.btn-outline-danger {
+  background-color: transparent;
+  color: var(--error-red);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 2px solid var(--error-red);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--error-red);
+  color: white;
+}
+
+.btn-outline-success {
+  background-color: transparent;
+  color: var(--success-green);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 2px solid var(--success-green);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.btn-outline-success:hover {
+  background-color: var(--success-green);
+  color: white;
+}
+
 /* KonyaKart style cards - Koyu mod destekli */
 .card {
   background-color: var(--bg-primary);
