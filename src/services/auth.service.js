@@ -1854,8 +1854,8 @@ const AuthService = {
         note: requestData.note
       });
 
-      // Doğru endpoint kullan (Java kodundaki @PostMapping değeri)
-      const response = await axios.post('http://localhost:8080/v1/api/user/unfreeze-account', requestData, {
+      // Doğru endpoint kullan - Auth controller'daki endpoint
+      const response = await axios.post('http://localhost:8080/v1/api/auth/unfreeze-account', requestData, {
         headers: { 'Content-Type': 'application/json' }
       });
       
