@@ -16,6 +16,7 @@ import Feedback from './Feedback.jsx';
 import PaymentPoints from './PaymentPoints.jsx';
 import Settings from './Settings.jsx';
 import TokenDebug from '../debug/TokenDebug.jsx';
+import NewsImageWithFallback from '../ui/NewsImageWithFallback.jsx';
 import bincardLogo from '../../assets/bincard-logo.jpg';
 
 const Dashboard = () => {
@@ -490,18 +491,10 @@ const Dashboard = () => {
             <div className="p-6">
               {/* Haber Görseli */}
               <div className="relative h-64 sm:h-80 mb-6 rounded-xl overflow-hidden">
-                <img
-                  src={selectedNews.imageUrl || selectedNews.image || selectedNews.thumbnail || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDgwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNzUgMTcwSDQyNVYyMzBIMzc1VjE3MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTM1MCAyMDBIMzc1VjIzMEgzNTBWMjAwWiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'}
+                <NewsImageWithFallback
+                  src={selectedNews.imageUrl || selectedNews.image || selectedNews.thumbnail}
                   alt={selectedNews.title}
                   className="w-full h-full object-cover"
-                  onLoad={(e) => {
-                    console.log(`✅ Modal resim başarıyla yüklendi: ${e.target.src}`);
-                  }}
-                  onError={(e) => {
-                    console.error(`❌ Modal resim yüklenemedi: ${e.target.src}`);
-                    console.log('🔄 Modal varsayılan resme geçiliyor...');
-                    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDgwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNzUgMTcwSDQyNVYyMzBIMzc1VjE3MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTM1MCAyMDBIMzc1VjIzMEgzNTBWMjAwWiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
-                  }}
                 />
               </div>
 
@@ -1213,6 +1206,57 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
         className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Toplu Taşıma Kartı Banner */}
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-8 text-white shadow-lg overflow-hidden relative">
+              {/* Arka plan dekoratif elemanlar */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
+              
+              <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between">
+                <div className="flex-1 mb-6 lg:mb-0">
+                  <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+                    Bingöl Toplu Taşıma Kartınızı Alın
+                  </h2>
+                  <p className="text-blue-100 text-lg mb-6 max-w-2xl">
+                    Bingöl ile şehir içi ulaşımda kolay ve hızlı ödeme yapın. 
+                    Kartınızı hemen alın, yolculuğunuzun keyfini çıkarın.
+                  </p>
+                  <button className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-colors duration-200 shadow-md">
+                    Hemen Başla
+                  </button>
+                </div>
+                
+                {/* Bingöl Kart görseli */}
+                <div className="flex-shrink-0">
+                  <div className="w-80 h-48 rounded-2xl overflow-hidden shadow-xl transform hover:scale-105 transition-transform duration-300">
+                    <img 
+                      src="/bingol-card.svg" 
+                      alt="Bingöl Toplu Taşıma Kartı" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback görsel
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                    {/* Fallback için placeholder */}
+                    <div className="w-full h-full bg-white/20 backdrop-blur-sm border border-white/30 items-center justify-center" style={{display: 'none'}}>
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-white/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                        </div>
+                        <p className="text-white/80 text-sm">Bingöl Card</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="text-center">
             
             
@@ -1272,17 +1316,12 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                         className="relative h-80 cursor-pointer hover:scale-[1.02] transition-transform duration-300"
                         onClick={() => onNewsClick && onNewsClick(news)}
                       >
-                        <img 
-                          src={news.imageUrl || news.image || news.thumbnail || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDgwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNzUgMTcwSDQyNVYyMzBIMzc1VjE3MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTM1MCAyMDBIMzc1VjIzMEgzNTBWMjAwWiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'} 
+                        <NewsImageWithFallback 
+                          src={news.imageUrl || news.image || news.thumbnail} 
                           alt={news.title}
                           className="w-full h-full object-cover"
                           onLoad={(e) => {
-                            console.log(`✅ Resim başarıyla yüklendi: ${e.target.src}`);
-                          }}
-                          onError={(e) => {
-                            console.error(`❌ Resim yüklenemedi: ${e.target.src}`);
-                            console.log('🔄 Varsayılan resme geçiliyor...');
-                            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDgwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0zNzUgMTcwSDQyNVYyMzBIMzc1VjE3MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTM1MCAyMDBIMzc1VjIzMEgzNTBWMjAwWiIgZmlsbD0iIjlDQTNBRiIvPgo8L3N2Zz4K';
+                            // Başarılı yükleme log'u artık NewsImageWithFallback içinde
                           }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>

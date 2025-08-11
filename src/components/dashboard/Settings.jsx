@@ -172,6 +172,15 @@ const Settings = () => {
   const [freezeDuration, setFreezeDuration] = useState(30); // Gün cinsinden
   const [isFreezing, setIsFreezing] = useState(false);
 
+  // Hesap silme için state'ler
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteFormData, setDeleteFormData] = useState({
+    password: '',
+    reason: '',
+    confirmDeletion: false
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Bildirim tipi simgesini belirleme
   const getNotificationIcon = (type) => {
     switch(type) {
@@ -804,6 +813,137 @@ const Settings = () => {
     setUnfreezeDescription('');
   };
 
+  // Hesap silme fonksiyonları
+  const handleDeleteInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setDeleteFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const validateDeleteForm = () => {
+    if (!deleteFormData.password.trim()) {
+      toast.error('Şifre alanı boş olamaz', {
+        position: 'top-center',
+        autoClose: 3000
+      });
+      return false;
+    }
+    
+    if (!deleteFormData.reason.trim()) {
+      toast.error('Silme nedeni belirtilmelidir', {
+        position: 'top-center',
+        autoClose: 3000
+      });
+      return false;
+    }
+    
+    if (deleteFormData.reason.length > 500) {
+      toast.error('Silme nedeni 500 karakteri geçemez', {
+        position: 'top-center',
+        autoClose: 3000
+      });
+      return false;
+    }
+    
+    if (!deleteFormData.confirmDeletion) {
+      toast.error('Hesap silme işlemini onaylamalısınız', {
+        position: 'top-center',
+        autoClose: 3000
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!validateDeleteForm()) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      console.log('[SETTINGS] Hesap silme başlatılıyor...', {
+        reason: deleteFormData.reason.slice(0, 50) + (deleteFormData.reason.length > 50 ? '...' : ''),
+        confirmDeletion: deleteFormData.confirmDeletion
+      });
+      
+      const result = await AuthService.deleteAccount(
+        deleteFormData.password,
+        deleteFormData.reason,
+        deleteFormData.confirmDeletion
+      );
+      
+      console.log('[SETTINGS] Delete account result:', result);
+      
+      if (result && result.success) {
+        toast.success(result.message || 'Hesabınız başarıyla silindi. İyi günler dileriz.', {
+          position: 'top-center',
+          autoClose: 5000
+        });
+        
+        // Modal'ı kapat
+        setShowDeleteModal(false);
+        
+        // Kullanıcı otomatik olarak logout edilecek
+        // 2 saniye bekle, ardından ana sayfaya yönlendir
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+      } else {
+        throw new Error(result?.message || 'Hesap silme işlemi başarısız oldu');
+      }
+    } catch (error) {
+      console.error('[SETTINGS] Hesap silme hatası:', error);
+      
+      let errorMessage = 'Hesap silme işlemi sırasında bir hata oluştu';
+      
+      if (error.message && error.message.includes('cüzdan')) {
+        errorMessage = 'Cüzdan bakiyeniz sıfır olmadığı için hesap silinemez. Önce bakiyenizi sıfırlayın.';
+      } else if (error.message && error.message.includes('şifre')) {
+        errorMessage = 'Girilen şifre hatalı. Lütfen doğru şifrenizi girin.';
+      } else if (error.message && error.message.includes('onay')) {
+        errorMessage = 'Hesap silme işlemini onaylamalısınız.';
+      } else if (error.message && error.message.includes('kullanıcı bulunamadı')) {
+        errorMessage = 'Kullanıcı bulunamadı. Lütfen tekrar giriş yapmayı deneyin.';
+      } else if (error.message && error.message.includes('aktif değil')) {
+        errorMessage = 'Hesabınız aktif değil. Bu işlemi gerçekleştiremezsiniz.';
+      } else if (error.message && error.message.includes('Oturum süresi dolmuş')) {
+        errorMessage = 'Oturum süresi dolmuş. Lütfen tekrar giriş yapın.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage, {
+        position: 'top-center',
+        autoClose: 5000
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const openDeleteModal = () => {
+    setDeleteFormData({
+      password: '',
+      reason: '',
+      confirmDeletion: false
+    });
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeleteFormData({
+      password: '',
+      reason: '',
+      confirmDeletion: false
+    });
+  };
+
   const resetSettings = () => {
     const defaultSettings = {
       notifications: {
@@ -1081,9 +1221,28 @@ const Settings = () => {
                     >
                       🚫 Hesabı Dondur
                     </button>
+                    
+                    {/* Tehlikeli İşlemler */}
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mt-4">
+                      <div className="flex items-center mb-2">
+                        <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <span className="text-sm font-medium text-red-800 dark:text-red-200">Tehlikeli İşlem</span>
+                      </div>
+                      <p className="text-sm text-red-700 dark:text-red-300 mb-3">
+                        Bu işlem geri alınamaz. Hesabınız kalıcı olarak silinir.
+                      </p>
+                      <button 
+                        onClick={openDeleteModal}
+                        className="w-full bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        🗑️ Hesabı Kalıcı Olarak Sil
+                      </button>
+                    </div>
                   </div>
                   <p className="text-sm text-gray-500 mt-2">
-                    � Hesap aktifleştirme işlemi giriş ekranından yapılabilir.
+                    ℹ️ Hesap aktifleştirme işlemi giriş ekranından yapılabilir.
                   </p>
                 </div>
               </div>
@@ -1918,11 +2077,149 @@ const Settings = () => {
     );
   };
 
+  // Hesap Silme Modal Component
+  const DeleteAccountModal = () => {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl">
+          {/* Modal Header */}
+          <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+            <h2 className="text-xl font-bold text-red-600 dark:text-red-400 flex items-center">
+              🗑️ Hesabı Sil
+            </h2>
+            <button
+              onClick={closeDeleteModal}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Modal Content */}
+          <div className="p-6">
+            {/* Uyarı Mesajı */}
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                    ⚠️ Dikkat: Bu işlem geri alınamaz!
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                    <p>
+                      Hesabınızı sildiğinizde aşağıdaki veriler kalıcı olarak silinir:
+                    </p>
+                    <ul className="list-disc mt-2 ml-4 space-y-1">
+                      <li>Tüm kişisel bilgileriniz</li>
+                      <li>İşlem geçmişiniz</li>
+                      <li>Kart bilgileriniz</li>
+                      <li>Bildirim ayarlarınız</li>
+                      <li>Favorileriniz ve tercihlerin</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="space-y-4">
+              {/* Şifre */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Mevcut Şifreniz *
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={deleteFormData.password}
+                  onChange={handleDeleteInputChange}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="Şifrenizi girin"
+                  disabled={isDeleting}
+                />
+              </div>
+
+              {/* Silme Nedeni */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Silme Nedeni *
+                </label>
+                <textarea
+                  name="reason"
+                  value={deleteFormData.reason}
+                  onChange={handleDeleteInputChange}
+                  rows={4}
+                  maxLength={500}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                  placeholder="Hesabınızı neden silmek istiyorsunuz?"
+                  disabled={isDeleting}
+                />
+                <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {deleteFormData.reason.length}/500 karakter
+                </div>
+              </div>
+
+              {/* Onay Checkbox */}
+              <div className="flex items-start">
+                <input
+                  type="checkbox"
+                  name="confirmDeletion"
+                  checked={deleteFormData.confirmDeletion}
+                  onChange={handleDeleteInputChange}
+                  className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                  disabled={isDeleting}
+                />
+                <label className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  Hesabımı kalıcı olarak silmek istediğimi onaylıyorum. Bu işlemin geri alınamaz olduğunu biliyorum.
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+                className="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting || !deleteFormData.password.trim() || !deleteFormData.reason.trim() || !deleteFormData.confirmDeletion}
+                className="flex-1 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Siliniyor...
+                  </>
+                ) : (
+                  <>🗑️ Hesabı Sil</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {showAvatarModal && <AvatarChangeModal />}
       {showNotificationDetailModal && <NotificationDetailModal />}
       {showFreezeAccountModal && <FreezeAccountModal />}
+      {showDeleteModal && <DeleteAccountModal />}
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

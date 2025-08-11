@@ -4,7 +4,7 @@ import AuthService from '../../services/auth.service';
 
 const Profilim = () => {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState({ firstName: '', lastName: '', email: '', photoUrl: '' });
+  const [profile, setProfile] = useState({ firstName: '', lastName: '', email: '', profilePicture: '' });
   const [photoPreview, setPhotoPreview] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [message, setMessage] = useState('');
@@ -44,15 +44,15 @@ const Profilim = () => {
       const firstName = data.firstName || '';
       const lastName = data.lastName || '';
       const email = data.email || '';
-      const photoUrl = data.photoUrl || '';
+      const profilePicture = data.profilePicture || '';
       
-      console.log('İşlenen profil verileri:', { firstName, lastName, email, photoUrl });
+      console.log('İşlenen profil verileri:', { firstName, lastName, email, profilePicture });
       
       const profileData = {
         firstName,
         lastName,
         email,
-        photoUrl,
+        profilePicture,
         // Eğer backend'den gelen özel alan adları varsa onları da sakla
         originalFieldNames: data.originalFieldNames || {
           firstName: 'firstName',
@@ -64,8 +64,16 @@ const Profilim = () => {
       console.log('Oluşturulan profil nesnesi:', profileData);
       
       setProfile(profileData);
-      setPhotoPreview(photoUrl);
+      setPhotoPreview(profilePicture);
       setOriginalProfile({...profileData});
+      
+      // Debug: Profil fotoğrafı kontrolü
+      console.log('🖼️ Profil fotoğrafı debug:', {
+        profilePicture: profilePicture,
+        photoPreview: profilePicture,
+        hasProfilePicture: !!profilePicture,
+        profilePictureLength: profilePicture?.length || 0
+      });
     } catch (err) {
       console.error('Profil yükleme hatası:', err);
       setError('Profil bilgileri alınamadı: ' + (err.message || 'Bilinmeyen hata'));
@@ -118,7 +126,7 @@ const Profilim = () => {
 
   const handleCancel = () => {
     setProfile(originalProfile);
-    setPhotoPreview(originalProfile?.photoUrl || '');
+    setPhotoPreview(originalProfile?.profilePicture || '');
     setPhotoFile(null);
     setMessage('');
     setError('');
@@ -392,14 +400,26 @@ const Profilim = () => {
               <div className="flex flex-col items-center">
                 <div className="relative group mb-4">
                   <div className="w-32 h-32 rounded-full border-4 border-white/80 shadow-2xl overflow-hidden bg-white/90 backdrop-blur-sm">
-                    <img
-                      src={photoPreview || '/default-avatar.png'}
-                      alt="Profil Fotoğrafı"
-                      className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110"
-                      onError={(e) => {
-                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik02NCA0OEMyNi44NjMgNDggMCA3NC44NjMgMCAxMTJIMTI4QzEyOCA3NC44NjMgMTAxLjEzNyA0OCA2NCA0OFoiIGZpbGw9IiNFNUU3RUIiLz4KPGNpcmNsZSBjeD0iNjQiIGN5PSI0MCIgcj0iMjQiIGZpbGw9IiNFNUU3RUIiLz4KPC9zdmc+';
-                      }}
-                    />
+                    {(photoPreview || profile.profilePicture) ? (
+                      <img
+                        src={photoPreview || profile.profilePicture}
+                        alt="Profil Fotoğrafı"
+                        className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110"
+                        onError={(e) => {
+                          console.log('Profil fotoğrafı yüklenemedi:', e.target.src);
+                          // Hata durumunda placeholder'ı göster
+                          e.target.style.display = 'none';
+                          const placeholder = e.target.parentNode.querySelector('.profile-placeholder');
+                          if (placeholder) placeholder.style.display = 'flex';
+                        }}
+                      />
+                    ) : (
+                      <div className="profile-placeholder w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                        <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                   <input
                     id="profile-photo-input"
@@ -422,9 +442,12 @@ const Profilim = () => {
                   <div className="absolute inset-0 rounded-full group-hover:shadow-2xl group-hover:shadow-white/20 transition-all duration-300 pointer-events-none"></div>
                 </div>
                 <h2 className="text-2xl font-bold mb-1 drop-shadow-lg">
-                  {profile.firstName && profile.lastName ? `${profile.firstName} ${profile.lastName}` : 'Kullanıcı'}
+                  {profile.firstName || profile.lastName ? 
+                    `${profile.firstName || ''} ${profile.lastName || ''}`.trim() : 
+                    ''
+                  }
                 </h2>
-                <p className="text-white/90 text-sm drop-shadow-md">{profile.email}</p>
+                <p className="text-white/90 text-sm drop-shadow-md">{profile.email || ''}</p>
               </div>
             </div>
           </div>

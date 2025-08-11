@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250">
+  <!-- Arka plan gradient -->
+  <defs>
+    <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8F5E8;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#A7E8BD;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bottomGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2C5282;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1A365D;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Ana kart arka planı -->
+  <rect width="400" height="250" rx="20" ry="20" fill="url(#cardGradient)"/>
+  
+  <!-- Dekoratif şekiller -->
+  <circle cx="350" cy="50" r="60" fill="rgba(255,255,255,0.2)"/>
+  <circle cx="80" cy="80" r="30" fill="rgba(255,255,255,0.1)"/>
+  <circle cx="320" cy="120" r="20" fill="rgba(255,255,255,0.15)"/>
+  
+  <!-- Şehir silueti -->
+  <g transform="translate(250, 80)">
+    <!-- Binalar -->
+    <rect x="0" y="30" width="15" height="40" fill="#2D3748" opacity="0.7"/>
+    <rect x="18" y="20" width="12" height="50" fill="#2D3748" opacity="0.6"/>
+    <rect x="32" y="35" width="10" height="35" fill="#2D3748" opacity="0.8"/>
+    <rect x="44" y="15" width="14" height="55" fill="#2D3748" opacity="0.7"/>
+    <rect x="60" y="25" width="11" height="45" fill="#2D3748" opacity="0.6"/>
+    <rect x="73" y="40" width="8" height="30" fill="#2D3748" opacity="0.7"/>
+  </g>
+  
+  <!-- Otobüs -->
+  <g transform="translate(50, 120)">
+    <rect x="0" y="0" width="60" height="25" rx="5" fill="#2D3748"/>
+    <rect x="5" y="5" width="50" height="15" rx="2" fill="#4A90A4"/>
+    <circle cx="12" cy="28" r="4" fill="#2D3748"/>
+    <circle cx="48" cy="28" r="4" fill="#2D3748"/>
+    <!-- Otobüs yazısı -->
+    <text x="15" y="15" font-family="Arial, sans-serif" font-size="8" fill="white" font-weight="bold">BINGÖL</text>
+  </g>
+  
+  <!-- BINGÖL yazısı -->
+  <text x="30" y="60" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#2D3748">BINGÖL</text>
+  
+  <!-- Alt kısım (koyu mavi) -->
+  <rect x="0" y="170" width="400" height="80" rx="0" ry="0" fill="url(#bottomGradient)"/>
+  
+  <!-- WiFi ikonu -->
+  <g transform="translate(30, 30)">
+    <circle cx="15" cy="15" r="15" fill="#2D3748"/>
+    <path d="M8 18h2v2H8v-2zm4-6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2m0-2c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z" fill="white"/>
+  </g>
+  
+  <!-- NC butonu -->
+  <rect x="200" y="190" width="30" height="15" rx="3" fill="#4ECDC4"/>
+  <text x="215" y="200" font-family="Arial, sans-serif" font-size="8" text-anchor="middle" fill="white" font-weight="bold">NC</text>
+  
+  <!-- QR Code placeholder -->
+  <rect x="320" y="185" width="35" height="35" rx="3" fill="white"/>
+  <g transform="translate(325, 190)">
+    <!-- QR kod simülasyonu -->
+    <rect x="0" y="0" width="3" height="3" fill="black"/>
+    <rect x="6" y="0" width="3" height="3" fill="black"/>
+    <rect x="12" y="0" width="3" height="3" fill="black"/>
+    <rect x="18" y="0" width="3" height="3" fill="black"/>
+    <rect x="24" y="0" width="3" height="3" fill="black"/>
+    
+    <rect x="0" y="6" width="3" height="3" fill="black"/>
+    <rect x="9" y="6" width="3" height="3" fill="black"/>
+    <rect x="15" y="6" width="3" height="3" fill="black"/>
+    <rect x="24" y="6" width="3" height="3" fill="black"/>
+    
+    <rect x="3" y="12" width="3" height="3" fill="black"/>
+    <rect x="12" y="12" width="3" height="3" fill="black"/>
+    <rect x="21" y="12" width="3" height="3" fill="black"/>
+    
+    <rect x="0" y="18" width="3" height="3" fill="black"/>
+    <rect x="6" y="18" width="3" height="3" fill="black"/>
+    <rect x="15" y="18" width="3" height="3" fill="black"/>
+    <rect x="24" y="18" width="3" height="3" fill="black"/>
+  </g>
+  
+  <!-- City Logo alanı -->
+  <rect x="120" y="190" width="25" height="25" rx="3" fill="#4ECDC4"/>
+  <text x="132" y="200" font-family="Arial, sans-serif" font-size="6" text-anchor="middle" fill="white" font-weight="bold">City</text>
+  <text x="132" y="208" font-family="Arial, sans-serif" font-size="6" text-anchor="middle" fill="white" font-weight="bold">Logo</text>
+  
+  <!-- QR Code alanı -->
+  <rect x="150" y="190" width="25" height="25" rx="3" fill="#4ECDC4"/>
+  <text x="162" y="200" font-family="Arial, sans-serif" font-size="6" text-anchor="middle" fill="white" font-weight="bold">QR</text>
+  <text x="162" y="208" font-family="Arial, sans-serif" font-size="6" text-anchor="middle" fill="white" font-weight="bold">Code</text>
+  
+  <!-- Kart numarası -->
+  <text x="30" y="235" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">SOL OT KINIL</text>
+  <text x="30" y="248" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#A0AEC0">361361331</text>
+  
+  <!-- Güvenlik ikonları -->
+  <g transform="translate(250, 185)">
+    <!-- Güvenlik ikonu 1 -->
+    <circle cx="10" cy="10" r="8" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1"/>
+    <path d="M6 10l2 2 4-4" stroke="white" stroke-width="1.5" fill="none"/>
+    
+    <!-- Güvenlik ikonu 2 -->
+    <circle cx="30" cy="10" r="8" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1"/>
+    <rect x="27" y="8" width="6" height="4" rx="1" fill="none" stroke="white" stroke-width="1"/>
+    <circle cx="30" cy="7" r="2" fill="none" stroke="white" stroke-width="1"/>
+  </g>
+</svg>

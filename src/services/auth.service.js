@@ -1123,12 +1123,12 @@ const AuthService = {
         // Profile data parsing logic...
         const profileData = {
           id: data.id || data.userId || data.user_id || '',
-          firstName: data.firstName || data.first_name || data.ad || data.name || 'İsimsiz',
-          lastName: data.lastName || data.last_name || data.soyad || data.surname || 'Kullanıcı',
+          firstName: data.firstName || data.first_name || data.ad || data.name || '',
+          lastName: data.lastName || data.last_name || data.soyad || data.surname || '',
           email: data.email || data.mail || data.emailAddress || data.e_mail || '',
           phoneNumber: data.phoneNumber || data.phone || data.telephone || data.tel || '',
           createdAt: data.createdAt || data.created_at || data.registerDate || new Date().toISOString(),
-          photoUrl: data.photoUrl || data.photo_url || data.profilePhoto || data.avatarUrl || '',
+          profilePicture: data.profilePicture || data.profile_picture || data.photoUrl || data.photo_url || data.avatarUrl || data.avatar || '',
           _rawData: data
         };
         
@@ -1438,22 +1438,51 @@ const AuthService = {
   },
 
   // Kullanıcı hesabını tamamen silme (Delete Account)
-  deleteAccount: async () => {
+  deleteAccount: async (password, reason, confirmDeletion) => {
     try {
       console.log('[DELETE_ACCOUNT] Kullanıcı hesabı siliniyor...');
+      
+      // Form validasyonları
+      if (!password) {
+        throw new Error('Şifre alanı boş olamaz');
+      }
+      
+      if (!reason || reason.trim().length === 0) {
+        throw new Error('Silme nedeni belirtilmelidir');
+      }
+      
+      if (reason.length > 500) {
+        throw new Error('Silme nedeni 500 karakteri geçemez');
+      }
+      
+      if (!confirmDeletion) {
+        throw new Error('Hesap silme işlemini onaylamalısınız');
+      }
       
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       if (!token) {
         throw new Error('Oturum bulunamadı! Lütfen tekrar giriş yapın.');
       }
 
-      console.log('[DELETE_ACCOUNT] Backend\'e hesap silme isteği gönderiliyor...');
+      // Backend'in beklediği DeleteAccountRequest formatına uygun veri hazırlama
+      const deleteAccountRequest = {
+        password: password,
+        reason: reason.trim(),
+        confirmDeletion: confirmDeletion
+      };
+
+      console.log('[DELETE_ACCOUNT] Backend\'e hesap silme isteği gönderiliyor...', {
+        password: '[GİZLİ]',
+        reason: deleteAccountRequest.reason,
+        confirmDeletion: deleteAccountRequest.confirmDeletion
+      });
       
       const response = await axios.delete('http://localhost:8080/v1/api/user/delete-account', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        data: deleteAccountRequest // DELETE request'te body için data kullanılır
       });
       
       console.log('[DELETE_ACCOUNT] Hesap başarıyla silindi:', response.data);
@@ -1461,7 +1490,13 @@ const AuthService = {
       // Başarılı ise tüm local verileri temizle
       AuthService.logout();
       
-      return { success: true, message: 'Hesabınız başarıyla silindi.' };
+      // Backend'den gelen ResponseMessage'ı işle
+      const responseData = response.data;
+      
+      return { 
+        success: responseData.success !== false, 
+        message: responseData.message || 'Hesabınız başarıyla silindi.' 
+      };
       
     } catch (error) {
       console.error('[DELETE_ACCOUNT] Hesap silinemedi:', error);
@@ -1473,8 +1508,36 @@ const AuthService = {
         throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
       }
       
-      // Backend'den gelen hata mesajını öncelik ver
-      const errorMessage = error.response?.data?.message || error.message || 'Hesap silinirken bir hata oluştu.';
+      // Backend exception türlerine göre özel hata mesajları
+      const backendMessage = error.response?.data?.message;
+      const exceptionType = error.response?.data?.exception || error.response?.data?.error;
+      
+      if (exceptionType?.includes('WalletBalanceNotZeroException') || 
+          backendMessage?.includes('bakiye') || 
+          backendMessage?.includes('cüzdan')) {
+        throw new Error('Cüzdan bakiyeniz sıfır olmadığı için hesap silinemez. Önce bakiyenizi sıfırlayın.');
+      } else if (exceptionType?.includes('PasswordsDoNotMatchException') || 
+                 backendMessage?.includes('şifre') || 
+                 backendMessage?.includes('password')) {
+        throw new Error('Girilen şifre hatalı. Lütfen doğru şifrenizi girin.');
+      } else if (exceptionType?.includes('ApproveIsConfirmDeletionException') || 
+                 backendMessage?.includes('onay') || 
+                 backendMessage?.includes('confirm')) {
+        throw new Error('Hesap silme işlemini onaylamalısınız.');
+      } else if (exceptionType?.includes('UserNotFoundException') || 
+                 backendMessage?.includes('kullanıcı bulunamadı') || 
+                 backendMessage?.includes('user not found')) {
+        throw new Error('Kullanıcı bulunamadı. Lütfen tekrar giriş yapmayı deneyin.');
+      } else if (exceptionType?.includes('UserNotActiveException') || 
+                 backendMessage?.includes('aktif değil') || 
+                 backendMessage?.includes('not active')) {
+        throw new Error('Hesabınız aktif değil. Bu işlemi gerçekleştiremezsiniz.');
+      } else if (backendMessage) {
+        throw new Error(backendMessage);
+      }
+      
+      // Genel hata mesajı
+      const errorMessage = error.message || 'Hesap silinirken bir hata oluştu.';
       throw new Error(errorMessage);
     }
   },
