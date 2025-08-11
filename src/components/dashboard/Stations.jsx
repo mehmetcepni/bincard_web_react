@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import StationService from '../../services/station.service';
 
 const Stations = () => {
+  const { t } = useTranslation();
+  
   // State management
   const [stations, setStations] = useState([]);
   const [favoriteStations, setFavoriteStations] = useState([]);
@@ -48,7 +51,7 @@ const Stations = () => {
       console.log('[STATIONS] Konum alındı:', location);
     } catch (error) {
       console.error('[STATIONS] Konum alınamadı:', error);
-      toast.error(error.message || 'Konum bilgisi alınamadı');
+      toast.error(error.message || t('stations.locationPermissionError'));
     } finally {
       setLoading(false);
     }
@@ -78,11 +81,11 @@ const Stations = () => {
         
         console.log('[STATIONS] Yakındaki duraklar yüklendi:', result.data);
       } else {
-        toast.error(result.message || 'Duraklar yüklenemedi');
+        toast.error(result.message || t('stations.stationsLoadError'));
       }
     } catch (error) {
       console.error('[STATIONS] Yakındaki duraklar yüklenemedi:', error);
-      toast.error('Duraklar yüklenirken bir hata oluştu');
+      toast.error(t('stations.stationsLoadError'));
     } finally {
       setLoading(false);
     }
@@ -122,11 +125,11 @@ const Stations = () => {
         
         console.log('[STATIONS] Arama sonuçları:', result.data);
       } else {
-        toast.error(result.message || 'Arama yapılamadı');
+        toast.error(result.message || t('stations.searchError'));
       }
     } catch (error) {
       console.error('[STATIONS] Arama hatası:', error);
-      toast.error('Arama yapılırken bir hata oluştu');
+      toast.error(t('stations.searchError'));
     } finally {
       setSearchLoading(false);
     }
@@ -135,7 +138,7 @@ const Stations = () => {
   // Arama önerileri getir
   const fetchSearchSuggestions = useCallback(async (query) => {
     if (!query.trim() || query.length < 2) {
-      setSuggestions([]);
+      setSearchSuggestions([]);
       setSelectedSuggestionIndex(-1);
       return;
     }
@@ -160,12 +163,12 @@ const Stations = () => {
           })
           .slice(0, 5); // Maksimum 5 öneri
           
-        setSuggestions(suggestions);
+        setSearchSuggestions(suggestions);
         setSelectedSuggestionIndex(-1);
       }
     } catch (error) {
       console.error('[STATIONS] Öneri getirme hatası:', error);
-      setSuggestions([]);
+      setSearchSuggestions([]);
       setSelectedSuggestionIndex(-1);
     }
   }, []);
@@ -180,7 +183,7 @@ const Stations = () => {
       fetchSearchSuggestions(value);
     } else {
       setShowSuggestions(false);
-      setSuggestions([]);
+      setSearchSuggestions([]);
       setSelectedSuggestionIndex(-1);
     }
   };
@@ -365,7 +368,7 @@ const Stations = () => {
             onClick={() => viewStationDetails(station)}
             className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
           >
-            Detaylar
+            {t('stations.details')}
           </button>
           
           {station.latitude && station.longitude && (
@@ -376,7 +379,7 @@ const Stations = () => {
               }}
               className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
             >
-              Yol Tarifi
+              {t('stations.directions')}
             </button>
           )}
         </div>
@@ -388,8 +391,8 @@ const Stations = () => {
     <div className="max-w-4xl mx-auto p-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Duraklar</h1>
-        <p className="text-gray-600 dark:text-gray-400">Yakınındaki durakları keşfet, favori duraklarını yönet</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('stations.title')}</h1>
+        <p className="text-gray-600 dark:text-gray-400">{t('stations.description')}</p>
       </div>
 
       {/* Arama Bölümü */}
@@ -398,7 +401,7 @@ const Stations = () => {
           <div className="relative">
             <input
               type="text"
-              placeholder="Durak ara... (örn: Alaaddin, Meram, Konya)"
+              placeholder={t('stations.search')}
               value={searchQuery}
               onChange={handleSearchChange}
               onKeyDown={handleKeyDown}
@@ -476,7 +479,7 @@ const Stations = () => {
               
               {/* Klavye kısayol ipucu */}
               <div className="border-t border-gray-100 px-4 py-2 bg-gray-50 text-xs text-gray-500">
-                ↑↓ Gezin • Enter Seç • Esc Kapat
+                {t('stations.keyboardShortcuts')}
               </div>
             </div>
           )}
@@ -484,7 +487,7 @@ const Stations = () => {
           {/* Popüler Aramalar */}
           {!searchQuery && !showSuggestions && (
             <div className="mt-3">
-              <p className="text-sm text-gray-600 mb-2">Popüler aramalar:</p>
+              <p className="text-sm text-gray-600 mb-2">{t('stations.popularSearches')}</p>
               <div className="flex flex-wrap gap-2">
                 {[
                   'Alaaddin Keykubat',
@@ -521,7 +524,7 @@ const Stations = () => {
               : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
-          Yakındaki Duraklar ({stations.length})
+          {t('stations.nearby')} ({stations.length})
         </button>
         <button
           onClick={() => changeTab('favorites')}
@@ -531,14 +534,14 @@ const Stations = () => {
               : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
-          Favorilerim ({favoriteStations.length})
+          {t('stations.favorites')} ({favoriteStations.length})
         </button>
         {activeTab === 'search' && (
           <button
             onClick={() => changeTab('search')}
             className="py-2 px-4 border-b-2 border-blue-500 text-blue-600 font-medium text-sm"
           >
-            Arama Sonuçları ({stations.length})
+            {t('stations.searchResults')} ({stations.length})
           </button>
         )}
       </div>
@@ -551,7 +554,7 @@ const Stations = () => {
             disabled={loading}
             className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Konum Alınıyor...' : '📍 Konumumu Al'}
+            {loading ? t('stations.gettingLocation') : t('stations.getLocation')}
           </button>
         </div>
       )}
@@ -560,7 +563,7 @@ const Stations = () => {
       {loading && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Duraklar yükleniyor...</p>
+          <p className="mt-4 text-gray-600">{t('stations.loadingStations')}</p>
         </div>
       )}
 
@@ -578,7 +581,7 @@ const Stations = () => {
                 onClick={loadMore}
                 className="bg-gray-100 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Daha Fazla Yükle
+                {t('stations.loadMore')}
               </button>
             </div>
           )}
@@ -588,14 +591,14 @@ const Stations = () => {
             <div className="text-center py-12">
               <div className="text-gray-400 text-6xl mb-4">🚏</div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {activeTab === 'favorites' ? 'Henüz favori durak yok' : 'Durak bulunamadı'}
+                {activeTab === 'favorites' ? t('stations.noFavorites') : t('stations.noStationsFound')}
               </h3>
               <p className="text-gray-500">
                 {activeTab === 'favorites' 
-                  ? 'Beğendiğin durakları favorilere ekleyerek buradan kolayca erişebilirsin'
+                  ? t('stations.noFavoritesDescription')
                   : activeTab === 'search'
-                  ? 'Farklı anahtar kelimeler ile arama yapmayı dene'
-                  : 'Bu konumda durak bulunamadı. Konumunu kontrol et veya arama yap'
+                  ? t('stations.noStationsFoundDescription')
+                  : t('stations.noNearbyStations')
                 }
               </p>
             </div>
@@ -624,7 +627,7 @@ const Stations = () => {
               
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Durak Türü</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('stations.stationType')}</p>
                   <p className="font-medium">
                     {StationService.getStationTypeLabel(selectedStation.type)}
                   </p>
@@ -632,14 +635,14 @@ const Stations = () => {
                 
                 {selectedStation.address && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Adres</p>
+                    <p className="text-sm text-gray-600 mb-1">{t('stations.address')}</p>
                     <p className="font-medium">{selectedStation.address}</p>
                   </div>
                 )}
                 
                 {currentLocation && selectedStation.latitude && selectedStation.longitude && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Mesafe</p>
+                    <p className="text-sm text-gray-600 mb-1">{t('stations.distance')}</p>
                     <p className="font-medium text-blue-600">
                       {StationService.calculateDistance(
                         currentLocation.latitude,
@@ -654,7 +657,7 @@ const Stations = () => {
                 {/* Geçen Rotalar */}
                 {stationRoutes.length > 0 && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-2">Geçen Rotalar</p>
+                    <p className="text-sm text-gray-600 mb-2">{t('stations.routesPassingThrough')}</p>
                     <div className="space-y-2">
                       {stationRoutes.map((route, index) => (
                         <div key={index} className="bg-blue-50 p-3 rounded-lg">
@@ -677,7 +680,7 @@ const Stations = () => {
                   )}
                   className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
                 >
-                  {favoriteStations.some(fav => fav.id === selectedStation.id) ? '💔 Favoriden Çıkar' : '❤️ Favoriye Ekle'}
+                  {favoriteStations.some(fav => fav.id === selectedStation.id) ? t('stations.removeFromFavorites') : t('stations.addToFavorites')}
                 </button>
                 
                 {selectedStation.latitude && selectedStation.longitude && (
@@ -688,7 +691,7 @@ const Stations = () => {
                     }}
                     className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    🗺️ Yol Tarifi
+                    🗺️ {t('stations.directions')}
                   </button>
                 )}
               </div>

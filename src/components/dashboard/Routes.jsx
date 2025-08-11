@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import RouteService from '../../services/route.service';
 import StationService from '../../services/station.service';
 
 const Routes = () => {
+  const { t } = useTranslation();
+  
   // State management
   const [routes, setRoutes] = useState([]);
   const [favoriteRoutes, setFavoriteRoutes] = useState([]);
@@ -51,11 +54,11 @@ const Routes = () => {
         setRoutes(result.data || []);
         console.log('[ROUTES] Tüm rotalar yüklendi:', result.data);
       } else {
-        toast.error(result.message || 'Rotalar yüklenemedi');
+        toast.error(result.message || t('routes.routeDetailsError'));
       }
     } catch (error) {
       console.error('[ROUTES] Rotalar yüklenemedi:', error);
-      toast.error('Rotalar yüklenirken bir hata oluştu');
+      toast.error(t('routes.routeDetailsError'));
     } finally {
       setLoading(false);
     }
@@ -89,11 +92,11 @@ const Routes = () => {
         setRoutes(result.data || []);
         console.log('[ROUTES] Arama sonuçları:', result.data);
       } else {
-        toast.error(result.message || 'Arama yapılamadı');
+        toast.error(result.message || t('routes.searchError'));
       }
     } catch (error) {
       console.error('[ROUTES] Arama hatası:', error);
-      toast.error('Arama yapılırken bir hata oluştu');
+      toast.error(t('routes.searchError'));
     } finally {
       setSearchLoading(false);
     }
@@ -125,11 +128,11 @@ const Routes = () => {
           )
         );
       } else {
-        toast.error(result.message || 'Favori durumu değiştirilemedi');
+        toast.error(result.message || t('routes.favoriteToggleError'));
       }
     } catch (error) {
       console.error('[ROUTES] Favori toggle hatası:', error);
-      toast.error('Favori durumu değiştirilirken bir hata oluştu');
+      toast.error(t('routes.favoriteToggleError'));
     }
   };
 
@@ -167,7 +170,7 @@ const Routes = () => {
     
     if (!directionType) {
       console.error('[ROUTES] DirectionType bulunamadı:', direction);
-      toast.error('Yön bilgisi eksik');
+      toast.error(t('routes.stationsLoadError'));
       return;
     }
     
@@ -186,19 +189,19 @@ const Routes = () => {
         setDirectionsStations(result.data || []);
       } else {
         setDirectionsStations([]);
-        toast.error(result.message || 'Duraklar getirilemedi');
+        toast.error(result.message || t('routes.stationsLoadError'));
       }
     } catch (error) {
       console.error('[ROUTES] Yön durakları alınamadı:', error);
       setDirectionsStations([]);
-      toast.error('Duraklar yüklenirken bir hata oluştu');
+      toast.error(t('routes.stationsLoadError'));
     }
   };
 
   // Rota önerisi al
   const getRouteSuggestion = async () => {
     if (!fromStation.trim() || !toStation.trim()) {
-      toast.error('Başlangıç ve bitiş noktalarını girin');
+      toast.error(t('routes.enterStartAndEnd'));
       return;
     }
 
@@ -219,15 +222,15 @@ const Routes = () => {
         console.log('[ROUTES] Rota önerileri alındı:', result.data);
         
         if (result.data?.routes?.length === 0) {
-          toast.info('Bu güzergah için rota bulunamadı');
+          toast.info(t('routes.noRouteFoundForPath'));
         }
       } else {
-        toast.error(result.message || 'Rota önerisi alınamadı');
+        toast.error(result.message || t('routes.routeSuggestionError'));
         setRouteSuggestions([]);
       }
     } catch (error) {
       console.error('[ROUTES] Rota önerisi hatası:', error);
-      toast.error('Rota önerisi alınırken bir hata oluştu');
+      toast.error(t('routes.routeSuggestionError'));
       setRouteSuggestions([]);
     } finally {
       setSuggestionLoading(false);
@@ -277,7 +280,7 @@ const Routes = () => {
             
             {route.startLocation && route.endLocation && (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Konum: {route.startLocation} ↔ {route.endLocation}
+                {t('routes.location')}: {route.startLocation} ↔ {route.endLocation}
               </p>
             )}
           </div>
@@ -301,7 +304,7 @@ const Routes = () => {
             onClick={() => viewRouteDetails(route)}
             className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
           >
-            Detaylar
+            {t('routes.details')}
           </button>
         </div>
       </div>
@@ -312,8 +315,8 @@ const Routes = () => {
     <div className="max-w-4xl mx-auto p-6 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Rotalar</h1>
-        <p className="text-gray-600 dark:text-gray-400">Otobüs rotalarını keşfet, rota planla</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('routes.title')}</h1>
+        <p className="text-gray-600 dark:text-gray-400">{t('routes.description')}</p>
       </div>
 
       {/* Arama Bölümü */}
@@ -321,7 +324,7 @@ const Routes = () => {
         <div className="relative">
           <input
             type="text"
-            placeholder="Rota ara..."
+            placeholder={t('routes.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -358,7 +361,7 @@ const Routes = () => {
               : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
-          Tüm Rotalar ({routes.length})
+          {t('routes.allRoutes')} ({routes.length})
         </button>
         <button
           onClick={() => changeTab('favorites')}
@@ -368,7 +371,7 @@ const Routes = () => {
               : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
-          Favorilerim ({favoriteRoutes.length})
+          {t('routes.favorites')} ({favoriteRoutes.length})
         </button>
         <button
           onClick={() => changeTab('suggest')}
@@ -378,14 +381,14 @@ const Routes = () => {
               : 'border-transparent text-gray-500 hover:text-gray-700'
           }`}
         >
-          Rota Önerisi
+          {t('routes.routePlanner')}
         </button>
         {activeTab === 'search' && (
           <button
             onClick={() => changeTab('search')}
             className="py-2 px-4 border-b-2 border-blue-500 text-blue-600 font-medium text-sm"
           >
-            Arama Sonuçları ({routes.length})
+            {t('routes.searchResults')} ({routes.length})
           </button>
         )}
       </div>
@@ -394,16 +397,16 @@ const Routes = () => {
       {activeTab === 'suggest' && (
         <div className="mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Rota Planlayıcı</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('routes.routePlanner')}</h3>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nereden?
+                  {t('routes.from')}
                 </label>
                 <input
                   type="text"
-                  placeholder="Başlangıç durağı veya konumu"
+                  placeholder={t('routes.fromPlaceholder')}
                   value={fromStation}
                   onChange={(e) => setFromStation(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -412,11 +415,11 @@ const Routes = () => {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nereye?
+                  {t('routes.to')}
                 </label>
                 <input
                   type="text"
-                  placeholder="Hedef durak veya konum"
+                  placeholder={t('routes.toPlaceholder')}
                   value={toStation}
                   onChange={(e) => setToStation(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -428,14 +431,14 @@ const Routes = () => {
                 disabled={suggestionLoading || !fromStation.trim() || !toStation.trim()}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {suggestionLoading ? 'Rotalar aranıyor...' : '🗺️ Rota Önerisi Al'}
+                {suggestionLoading ? t('routes.searchingRoutes') : t('routes.getRouteSuggestion')}
               </button>
             </div>
             
             {/* Rota Önerileri */}
             {routeSuggestions.length > 0 && (
               <div className="mt-6">
-                <h4 className="text-md font-medium text-gray-900 mb-3">Önerilen Rotalar</h4>
+                <h4 className="text-md font-medium text-gray-900 mb-3">{t('routes.suggestedRoutes')}</h4>
                 <div className="space-y-3">
                   {routeSuggestions.map((suggestion, index) => (
                     <div key={index} className="bg-blue-50 p-4 rounded-lg">
@@ -445,12 +448,12 @@ const Routes = () => {
                             {suggestion.routeName}
                           </p>
                           <p className="text-sm text-blue-600">
-                            Süre: {suggestion.estimatedDuration || 'Bilinmiyor'} • 
-                            Mesafe: {suggestion.distance || 'Bilinmiyor'}
+                            {t('routes.duration')}: {suggestion.estimatedDuration || t('routes.unknown')} • 
+                            {t('routes.distance')}: {suggestion.distance || t('routes.unknown')}
                           </p>
                           {suggestion.transfers && suggestion.transfers > 0 && (
                             <p className="text-sm text-orange-600 mt-1">
-                              🔄 {suggestion.transfers} aktarma gerekli
+                              🔄 {suggestion.transfers} {t('routes.transfersRequired')}
                             </p>
                           )}
                         </div>
@@ -458,7 +461,7 @@ const Routes = () => {
                           onClick={() => viewRouteDetails(suggestion)}
                           className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
                         >
-                          Detay
+                          {t('routes.details')}
                         </button>
                       </div>
                     </div>
@@ -474,7 +477,7 @@ const Routes = () => {
       {loading && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Rotalar yükleniyor...</p>
+          <p className="mt-4 text-gray-600">{t('routes.loadingRoutes')}</p>
         </div>
       )}
 
@@ -490,14 +493,14 @@ const Routes = () => {
             <div className="text-center py-12">
               <div className="text-gray-400 text-6xl mb-4">🚌</div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {activeTab === 'favorites' ? 'Henüz favori rota yok' : 'Rota bulunamadı'}
+                {activeTab === 'favorites' ? t('routes.noFavorites') : t('routes.noRoutesFound')}
               </h3>
               <p className="text-gray-500">
                 {activeTab === 'favorites' 
-                  ? 'Beğendiğin rotaları favorilere ekleyerek buradan kolayca erişebilirsin'
+                  ? t('routes.noFavoritesDescription')
                   : activeTab === 'search'
-                  ? 'Farklı anahtar kelimeler ile arama yapmayı dene'
-                  : 'Henüz aktif rota bulunmuyor'
+                  ? t('routes.noRoutesFoundDescription')
+                  : t('routes.noActiveRoutes')
                 }
               </p>
             </div>
@@ -539,7 +542,7 @@ const Routes = () => {
               {/* Rota Yönleri */}
               {routeDirections.length > 0 && (
                 <div className="mb-6">
-                  <h4 className="text-md font-medium text-gray-900 mb-3">Yönler</h4>
+                  <h4 className="text-md font-medium text-gray-900 mb-3">{t('routes.directions')}</h4>
                   <div className="space-y-2">
                     {routeDirections.map((direction, index) => {
                       console.log('[ROUTES] Render edilen yön:', direction);
@@ -580,7 +583,7 @@ const Routes = () => {
               {selectedDirection && directionsStations.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-md font-medium text-gray-900 mb-3">
-                    {RouteService.getDirectionTypeLabel(selectedDirection.directionType)} Yönü Durakları
+                    {RouteService.getDirectionTypeLabel(selectedDirection.directionType)} {t('routes.stationsInDirection')}
                   </h4>
                   <div className="max-h-60 overflow-y-auto space-y-2">
                     {directionsStations.map((station, index) => (
@@ -592,7 +595,7 @@ const Routes = () => {
                           <p className="font-medium text-sm">{station.stationName || station.name}</p>
                           {station.arrivalTime && (
                             <p className="text-xs text-gray-500">
-                              Varış: {station.arrivalTime}
+                              {t('routes.arrival')}: {station.arrivalTime}
                             </p>
                           )}
                         </div>
@@ -611,8 +614,8 @@ const Routes = () => {
                   className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   {favoriteRoutes.some(fav => fav.id === selectedRoute.id) 
-                    ? '💔 Favoriden Çıkar' 
-                    : '❤️ Favoriye Ekle'
+                    ? t('routes.removeFromFavorites')
+                    : t('routes.addToFavorites')
                   }
                 </button>
               </div>

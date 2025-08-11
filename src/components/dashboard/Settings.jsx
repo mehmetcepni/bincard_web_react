@@ -226,7 +226,7 @@ const Settings = () => {
       })
       .catch(err => {
         console.error('Bildirimler işaretlenirken hata oluştu:', err);
-        toast.error('İşlem sırasında bir hata oluştu', {
+        toast.error(t('settings.operationError'), {
           position: 'top-center'
         });
       });
@@ -249,7 +249,7 @@ const Settings = () => {
       })
       .catch(err => {
         console.error('Bildirim detayı alınırken hata oluştu:', err);
-        toast.error('Bildirim detayları alınamadı', {
+        toast.error(t('settings.notificationDetailsError'), {
           position: 'top-center'
         });
       })
@@ -262,21 +262,21 @@ const Settings = () => {
   const handleDeleteNotification = (notificationId, e) => {
     e.stopPropagation(); // Modal açılmasını engelle
     
-    if (window.confirm('Bu bildirimi silmek istediğinizden emin misiniz?')) {
+    if (window.confirm(t('settings.deleteNotificationConfirm'))) {
       NotificationService.deleteNotification(notificationId)
         .then(() => {
           // Bildirim listesinden kaldır
           setNotifications(prev => 
             prev.filter(notif => notif.id !== notificationId)
           );
-          toast.success('Bildirim başarıyla silindi', {
+          toast.success(t('settings.notificationDeleted'), {
             position: 'top-center',
             autoClose: 2000
           });
         })
         .catch(err => {
           console.error('Bildirim silinirken hata oluştu:', err);
-          toast.error('Bildirim silinemedi', {
+          toast.error(t('settings.notificationDeleteError'), {
             position: 'top-center'
           });
         });
@@ -376,13 +376,13 @@ const Settings = () => {
             });
           } else {
             console.warn('Profil bilgisi localStorage\'da bulunamadı');
-            toast.warning('Profil bilgileri yüklenemedi. Lütfen sayfayı yenileyin veya tekrar giriş yapın.', {
+            toast.warning(t('settings.profileLoadError'), {
               position: 'top-center'
             });
           }
         } catch (error) {
           console.error('Profil bilgisi alınamadı:', error);
-          toast.error('Profil bilgileri alınamadı: ' + error.message);
+          toast.error(t('settings.profileLoadError') + ': ' + error.message);
         }
       } else {
         // Token varsa ama AuthService.isAuthenticated false dönüyorsa
@@ -1053,7 +1053,7 @@ const Settings = () => {
         {/* Kullanıcı Bilgileri */}
         <div className="card p-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            👤 Hesap Bilgileri
+            👤 {t('settings.accountInfo')}
           </h2>
           
           {user ? (
@@ -1074,7 +1074,7 @@ const Settings = () => {
                     onClick={handleAvatarClick}
                     className="mt-3 text-[#005bac] hover:text-[#004690] font-medium transition-colors"
                   >
-                    📷 Profil Fotoğrafını Değiştir
+                    📷 {t('settings.changeProfilePhoto')}
                   </button>
                 </div>
               </div>
@@ -1083,7 +1083,7 @@ const Settings = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Ad</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.firstName')}</label>
                     <input
                       type="text"
                       value={isEditingProfile ? profileData.firstName : (user.firstName || '')}
@@ -1095,7 +1095,7 @@ const Settings = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Soyad</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.lastName')}</label>
                     <input
                       type="text"
                       value={isEditingProfile ? profileData.lastName : (user.lastName || '')}
@@ -1107,7 +1107,7 @@ const Settings = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.email')}</label>
                     <input
                       type="email"
                       value={isEditingProfile ? profileData.email : (user.email || '')}
@@ -1116,7 +1116,7 @@ const Settings = () => {
                         isEditingProfile ? 'bg-white' : 'bg-gray-50'
                       }`}
                       readOnly={!isEditingProfile}
-                      placeholder={isEditingProfile ? "E-posta adresinizi girin" : "E-posta belirtilmemiş"}
+                      placeholder={isEditingProfile ? t('settings.enterEmailPlaceholder') : t('settings.emailNotSpecified')}
                     />
                   </div>
                   
@@ -1130,7 +1130,7 @@ const Settings = () => {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        Düzenle
+                        {t('settings.edit')}
                       </button>
                     ) : (
                       <>
@@ -1142,14 +1142,14 @@ const Settings = () => {
                           {isSavingProfile ? (
                             <>
                               <div className="spinner"></div>
-                              Kaydediliyor...
+                              {t('settings.saving')}...
                             </>
                           ) : (
                             <>
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                               </svg>
-                              Kaydet
+                              {t('common.save')}
                             </>
                           )}
                         </button>
@@ -1161,7 +1161,7 @@ const Settings = () => {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                           </svg>
-                          İptal
+                          {t('common.cancel')}
                         </button>
                       </>
                     )}
@@ -1169,29 +1169,29 @@ const Settings = () => {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.phone')}</label>
                     <input
                       type="tel"
                       value={user.phoneNumber || ''}
-                      placeholder="Telefon numarası belirtilmemiş"
+                      placeholder={t('settings.phoneNotSpecified')}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-base"
                       readOnly
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Üyelik Tarihi</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.membershipDate')}</label>
                     <input
                       type="text"
-                      value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
+                      value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('tr-TR') : t('settings.unknown')}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-base"
                       readOnly
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Kullanıcı ID</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.userId')}</label>
                     <input
                       type="text"
-                      value={user.id || 'Bilinmiyor'}
+                      value={user.id || t('settings.unknown')}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-base"
                       readOnly
                     />
@@ -1201,25 +1201,25 @@ const Settings = () => {
 
               {/* Güvenlik Seçenekleri */}
               <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">🔐 Güvenlik</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">🔐 {t('settings.security')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button className="btn-outline flex items-center justify-center gap-2">
-                    🔑 Şifreyi Değiştir
+                    🔑 {t('settings.changePassword')}
                   </button>
                   <button className="btn-outline flex items-center justify-center gap-2">
-                    📱 İki Faktörlü Doğrulama
+                    📱 {t('settings.twoFactorAuth')}
                   </button>
                 </div>
                 
                 {/* Hesap Yönetimi */}
                 <div className="mt-6 pt-4 border-t border-gray-200">
-                  <h4 className="text-md font-medium text-gray-900 mb-3">Hesap Yönetimi</h4>
+                  <h4 className="text-md font-medium text-gray-900 mb-3">{t('settings.accountManagement')}</h4>
                   <div className="grid grid-cols-1 gap-4">
                     <button 
                       onClick={openFreezeAccountModal}
                       className="btn-outline-danger flex items-center justify-center gap-2 text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
                     >
-                      🚫 Hesabı Dondur
+                      🚫 {t('settings.freezeAccount')}
                     </button>
                     
                     {/* Tehlikeli İşlemler */}
@@ -1228,21 +1228,21 @@ const Settings = () => {
                         <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
                         </svg>
-                        <span className="text-sm font-medium text-red-800 dark:text-red-200">Tehlikeli İşlem</span>
+                        <span className="text-sm font-medium text-red-800 dark:text-red-200">{t('settings.dangerousOperation')}</span>
                       </div>
                       <p className="text-sm text-red-700 dark:text-red-300 mb-3">
-                        Bu işlem geri alınamaz. Hesabınız kalıcı olarak silinir.
+                        {t('settings.deleteAccountWarning')}
                       </p>
                       <button 
                         onClick={openDeleteModal}
                         className="w-full bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                       >
-                        🗑️ Hesabı Kalıcı Olarak Sil
+                        🗑️ {t('settings.deleteAccountPermanently')}
                       </button>
                     </div>
                   </div>
                   <p className="text-sm text-gray-500 mt-2">
-                    ℹ️ Hesap aktifleştirme işlemi giriş ekranından yapılabilir.
+                    ℹ️ {t('settings.accountActivationNote')}
                   </p>
                 </div>
               </div>
@@ -1268,14 +1268,14 @@ const Settings = () => {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center">
-              🔔 Bildirimlerim
+              🔔 {t('settings.myNotifications')}
             </h2>
             <div className="flex space-x-2">
               <button 
                 onClick={markAllAsRead}
                 className="text-sm bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-800 dark:text-blue-200 py-1 px-3 rounded-md transition-colors"
               >
-                Tümünü Okundu İşaretle
+                {t('settings.markAllAsRead')}
               </button>
             </div>
           </div>
@@ -1290,7 +1290,7 @@ const Settings = () => {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
               }`}
             >
-              Tümü
+              {t('settings.all')}
             </button>
             <button
               onClick={() => changeNotificationType('SUCCESS')}
@@ -1300,7 +1300,7 @@ const Settings = () => {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
               }`}
             >
-              ✅ Başarılı
+              ✅ {t('settings.successful')}
             </button>
             <button
               onClick={() => changeNotificationType('WARNING')}
@@ -1310,7 +1310,7 @@ const Settings = () => {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
               }`}
             >
-              ⚠️ Uyarı
+              ⚠️ {t('settings.warning')}
             </button>
             <button
               onClick={() => changeNotificationType('ERROR')}
@@ -1320,7 +1320,7 @@ const Settings = () => {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
               }`}
             >
-              ❌ Hata
+              ❌ {t('common.error')}
             </button>
           </div>
           
@@ -1328,7 +1328,7 @@ const Settings = () => {
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
-              <p className="mt-2 text-gray-600 dark:text-gray-400">Bildirimler yükleniyor...</p>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">{t('settings.loadingNotifications')}...</p>
             </div>
           ) : error ? (
             <div className="text-center py-12">
@@ -2226,16 +2226,16 @@ const Settings = () => {
         <div className="card p-6 mb-8 bg-gradient-to-r from-[#005bac] to-[#004690] text-white">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold mb-2 fade-in">⚙️ Ayarlar</h1>
+              <h1 className="text-3xl font-bold mb-2 fade-in">⚙️ {t('settings.title')}</h1>
               <p className="text-blue-100 fade-in">
-                Hesap bilgilerinizi ve uygulama ayarlarınızı buradan yönetebilirsiniz.
+                {t('settings.description')}
               </p>
             </div>
             {/* Tema değiştirme butonu */}
             <button
               onClick={() => handleThemeChange(settings.theme === 'light' ? 'dark' : 'light')}
               className="p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors duration-200"
-              title={settings.theme === 'light' ? 'Koyu moda geç' : 'Açık moda geç'}
+              title={settings.theme === 'light' ? t('settings.switchToDarkMode') : t('settings.switchToLightMode')}
             >
               {settings.theme === 'light' ? (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2261,7 +2261,7 @@ const Settings = () => {
                   : 'text-gray-600 dark:text-gray-400 hover:text-[#005bac] hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              👤 Profilim
+              👤 {t('settings.profileTab')}
             </button>
             <button
               onClick={() => setActiveSubTab('notifications')}
@@ -2271,7 +2271,7 @@ const Settings = () => {
                   : 'text-gray-600 dark:text-gray-400 hover:text-[#005bac] hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              🔔 Bildirimlerim
+              🔔 {t('settings.notificationsTab')}
             </button>
             <button
               onClick={() => setActiveSubTab('settings')}
@@ -2281,7 +2281,7 @@ const Settings = () => {
                   : 'text-gray-600 dark:text-gray-400 hover:text-[#005bac] hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}
             >
-              ⚙️ Uygulama Ayarları
+              ⚙️ {t('settings.appSettingsTab')}
             </button>
           </div>
         </div>

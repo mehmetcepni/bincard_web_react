@@ -1,21 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
+import { useTranslation } from 'react-i18next';
 import AuthService from '../../services/auth.service';
 import { toast } from 'react-toastify';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBRYfrvFsxgARSM_iE7JA1EHu1nSpaWAxc';
-
-const PLACE_TYPES = [
-  { label: 'Ödeme Noktası', value: 'payment_point' }, // özel keyword ile arayacağız
-  { label: 'Market', value: 'supermarket' },
-  { label: 'Bakkal', value: 'convenience_store' },
-  { label: 'Restoran', value: 'restaurant' },
-  { label: 'Banka', value: 'bank' },
-  { label: 'ATM', value: 'atm' },
-  { label: 'Postane', value: 'post_office' },
-  
-];
 
 const mapContainerStyle = {
   width: '100%',
@@ -25,7 +15,18 @@ const mapContainerStyle = {
 const defaultCenter = { lat: 39.925533, lng: 32.866287 }; // Ankara
 
 const PaymentPoints = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const PLACE_TYPES = [
+    { label: t('paymentPoints.placeTypes.paymentPoint'), value: 'payment_point' },
+    { label: t('paymentPoints.placeTypes.supermarket'), value: 'supermarket' },
+    { label: t('paymentPoints.placeTypes.convenienceStore'), value: 'convenience_store' },
+    { label: t('paymentPoints.placeTypes.restaurant'), value: 'restaurant' },
+    { label: t('paymentPoints.placeTypes.bank'), value: 'bank' },
+    { label: t('paymentPoints.placeTypes.atm'), value: 'atm' },
+    { label: t('paymentPoints.placeTypes.postOffice'), value: 'post_office' },
+  ];
   const [userLocation, setUserLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState('pending');
   const [loading, setLoading] = useState(true);
@@ -92,7 +93,7 @@ const PaymentPoints = () => {
         setPlaces(results);
       } else {
         setPlaces([]);
-        toast.info('Sonuç bulunamadı.');
+        toast.info(t('paymentPoints.noResultsFound'));
       }
       setLoading(false);
     });
@@ -114,7 +115,7 @@ const PaymentPoints = () => {
   };
 
   if (!isLoaded) {
-    return <div className="flex items-center justify-center min-h-[80vh]">Google Haritası yükleniyor...</div>;
+    return <div className="flex items-center justify-center min-h-[80vh]">{t('paymentPoints.loadingMap')}</div>;
   }
 
   return (
@@ -122,13 +123,13 @@ const PaymentPoints = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header ve filtreler */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-          <h1 className="text-2xl font-bold text-blue-800 mb-4">Yakındaki Ödeme Noktaları ve İşletmeler</h1>
+          <h1 className="text-2xl font-bold text-blue-800 mb-4">{t('paymentPoints.title')}</h1>
           <div className="flex flex-col md:flex-row gap-4 mb-4">
               <input
                 type="text"
-              placeholder="İşletme adı veya anahtar kelime..."
+                placeholder={t('paymentPoints.searchPlaceholder')}
                 value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             <select
@@ -144,7 +145,7 @@ const PaymentPoints = () => {
               onClick={handleSearch}
               className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
             >
-              Ara
+              {t('paymentPoints.search')}
                   </button>
           </div>
         </div>
@@ -186,7 +187,7 @@ const PaymentPoints = () => {
                       </div>
                     )}
                     {selectedPlace.rating && (
-                      <div className="text-xs text-yellow-700 mb-1">Puan: {selectedPlace.rating} ⭐</div>
+                      <div className="text-xs text-yellow-700 mb-1">{t('paymentPoints.rating')}: {selectedPlace.rating} ⭐</div>
                     )}
                     <a
                       href={`https://www.google.com/maps/place/?q=place_id:${selectedPlace.place_id}`}
@@ -194,7 +195,7 @@ const PaymentPoints = () => {
                       rel="noopener noreferrer"
                       className="text-blue-600 underline text-xs"
                     >
-                      Google Haritalar'da Aç
+                      {t('paymentPoints.openInGoogleMaps')}
                     </a>
                   </div>
                 </InfoWindow>
@@ -225,7 +226,7 @@ const PaymentPoints = () => {
                 <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-1">{place.name}</h3>
                 <div className="text-sm text-gray-600 mb-2">{place.vicinity}</div>
                 {place.rating && (
-                  <div className="text-xs text-yellow-700 mb-2">Puan: {place.rating} ⭐</div>
+                  <div className="text-xs text-yellow-700 mb-2">{t('paymentPoints.rating')}: {place.rating} ⭐</div>
                 )}
                 <div className="flex flex-wrap gap-1 mb-2">
                   {place.types && place.types.slice(0, 2).map((t, i) => (
@@ -238,7 +239,7 @@ const PaymentPoints = () => {
                   rel="noopener noreferrer"
                   className="block mt-2 text-blue-600 underline text-xs"
                 >
-                  Google Haritalar'da Aç
+                  {t('paymentPoints.openInGoogleMaps')}
                 </a>
               </div>
             </div>
@@ -247,8 +248,8 @@ const PaymentPoints = () => {
         {/* Sonuç yoksa */}
         {places.length === 0 && !loading && (
           <div className="bg-white rounded-xl shadow-md p-8 text-center mt-8">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Sonuç bulunamadı</h3>
-            <p className="text-gray-600 mb-4">Farklı bir arama terimi veya kategori deneyin.</p>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{t('paymentPoints.noResultsFound')}</h3>
+            <p className="text-gray-600 mb-4">{t('paymentPoints.noResultsDescription')}</p>
           </div>
         )}
       </div>
