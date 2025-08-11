@@ -1296,99 +1296,149 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
             </button>
           </div>
           
-          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg">
+          
+          {/* 4 Kart Grid Sistemi - İyileştirilmiş Responsive Tasarım */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
             {newsLoading ? (
-              <div className="h-80 flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-700">
-                <div className="spinner mb-4"></div>
-                <span className="text-gray-600 dark:text-gray-300 font-medium">Haberler yükleniyor...</span>
-                <span className="text-gray-500 dark:text-gray-400 text-sm mt-1">Lütfen bekleyiniz</span>
-              </div>
+              // Loading kartları
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="animate-pulse">
+                  <div className="h-64 sm:h-72 bg-gray-200 dark:bg-gray-700 rounded-2xl shadow-lg"></div>
+                </div>
+              ))
             ) : newsData.length > 0 ? (
-              <>
-                {/* Slider Container */}
-                <div 
-                  className="flex transition-transform duration-500 ease-in-out"
-                  style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-                >
-                  {newsData.map((news, index) => (
-                    <div key={news.id} className="w-full flex-shrink-0">
-                      <div 
-                        className="relative h-80 cursor-pointer hover:scale-[1.02] transition-transform duration-300"
-                        onClick={() => onNewsClick && onNewsClick(news)}
-                      >
-                        <NewsImageWithFallback 
-                          src={news.imageUrl || news.image || news.thumbnail} 
-                          alt={news.title}
-                          className="w-full h-full object-cover"
-                          onLoad={(e) => {
-                            // Başarılı yükleme log'u artık NewsImageWithFallback içinde
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                        <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                          <div className="flex items-center gap-3 mb-3">
-                            <span className="px-3 py-1 bg-[#005bac] text-white text-sm font-medium rounded-full">
-                              {news.category || news.type || 'Genel'}
-                            </span>
-                            <span className="text-sm text-gray-200">
-                              {new Date(news.publishDate || news.createdAt || Date.now()).toLocaleDateString('tr-TR')}
-                            </span>
-                          </div>
-                          <h3 className="text-2xl font-bold mb-2 line-clamp-2">{news.title}</h3>
-                          <p className="text-gray-200 line-clamp-2">{news.summary || news.content}</p>
-                        </div>
+              newsData.slice(0, 4).map((news, index) => {
+                // Daha zengin gradient renkleri
+                const gradients = [
+                  'bg-gradient-to-br from-red-500 via-rose-500 to-pink-600',        // Kırmızı-Pembe
+                  'bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-500',       // Mavi-Cyan  
+                  'bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-600', // Mor-İndigo
+                  'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600'   // Yeşil-Teal
+                ];
+                
+                return (
+                  <div 
+                    key={news.id} 
+                    className={`group relative h-64 sm:h-72 rounded-2xl overflow-hidden cursor-pointer transform transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 shadow-lg ${gradients[index % 4]} news-card-hover card-glow`}
+                    onClick={() => onNewsClick && onNewsClick(news)}
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    {/* Arka plan resmi - geliştirilmiş opacity */}
+                    <div className="absolute inset-0 opacity-15 group-hover:opacity-25 transition-opacity duration-500">
+                      <NewsImageWithFallback 
+                        src={news.imageUrl || news.image || news.thumbnail} 
+                        alt={news.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Gradient overlay - daha yumuşak */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20"></div>
+                    
+                    {/* İçerik - responsive padding */}
+                    <div className="relative z-10 p-4 sm:p-6 h-full flex flex-col justify-between text-white">
+                      {/* Üst kısım - kategori ve tarih */}
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/25 backdrop-blur-md text-white text-xs font-semibold rounded-full border border-white/20 shadow-sm glass-effect">
+                          {news.category || news.type || 'BinCard'}
+                        </span>
+                        <span className="text-xs text-white/90 font-medium bg-black/20 px-2 py-1 rounded-md backdrop-blur-sm">
+                          {new Date(news.publishDate || news.createdAt || Date.now()).toLocaleDateString('tr-TR')}
+                        </span>
+                      </div>
+                      
+                      {/* Alt kısım - başlık ve özet - responsive font sizes */}
+                      <div className="space-y-2 sm:space-y-3">
+                        <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 line-clamp-2 leading-tight text-white drop-shadow-lg">
+                          {news.title}
+                        </h3>
+                        <p className="text-sm text-white/95 line-clamp-2 sm:line-clamp-3 leading-relaxed drop-shadow-md">
+                          {news.summary || news.content || 'BinCard ile ilgili güncel haberler ve duyurular'}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                {/* Navigation Arrows */}
-                {newsData.length > 1 && (
-                  <>
-                    <button
-                      onClick={prevSlide}
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 text-gray-800 dark:text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={nextSlide}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 text-gray-800 dark:text-white rounded-full p-2 shadow-lg transition-all duration-200 hover:scale-110"
-                    >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </>
-                )}
-
-                {/* Dots Indicator */}
-                {newsData.length > 1 && (
-                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                    {newsData.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => goToSlide(index)}
-                        className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                          index === currentSlide 
-                            ? 'bg-white shadow-lg scale-110' 
-                            : 'bg-white/50 hover:bg-white/80'
-                        }`}
-                      />
-                    ))}
+                    
+                    {/* Hover efekti - geliştirilmiş */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                    
+                    {/* Hover border efekti */}
+                    <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/30 rounded-2xl transition-all duration-500"></div>
+                    
+                    {/* Okuma ikonu - hover'da görünür */}
+                    <div className="absolute top-3 sm:top-4 right-3 sm:right-4 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center glass-effect">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </>
+                );
+              })
             ) : (
-              <div className="h-80 flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-700">
-                <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                </svg>
-                <p className="text-gray-600 dark:text-gray-300 text-lg font-medium mb-2">Henüz haber bulunmuyor</p>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Yakında güncel haberler burada görünecek</p>
-              </div>
+              // Haber yoksa placeholder kartlar - iyileştirilmiş
+              Array.from({ length: 4 }).map((_, index) => {
+                const gradients = [
+                  'bg-gradient-to-br from-red-500 via-rose-500 to-pink-600',
+                  'bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-500',
+                  'bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-600',
+                  'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600'
+                ];
+                
+                const placeholderTitles = [
+                  'BinCard Yenilikleri',
+                  'Ulaşım Haberleri', 
+                  'Kampanya Duyuruları',
+                  'Sistem Güncellemeleri'
+                ];
+                
+                const placeholderTexts = [
+                  'BinCard ile ilgili son gelişmeler ve yenilikler burada yer alacak',
+                  'Şehir içi ulaşım hakkında önemli duyurular ve haberler',
+                  'Kullanıcılara özel kampanya ve fırsatlar yakında duyurulacak',
+                  'Sistem iyileştirmeleri ve güncellemeler hakkında bilgiler'
+                ];
+                
+                return (
+                  <div 
+                    key={index}
+                    className={`group relative h-64 sm:h-72 rounded-2xl overflow-hidden ${gradients[index]} opacity-60 hover:opacity-80 transition-all duration-300 shadow-lg card-glow`}
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10"></div>
+                    
+                    <div className="relative z-10 p-4 sm:p-6 h-full flex flex-col justify-between text-white">
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/25 backdrop-blur-md text-white text-xs font-semibold rounded-full border border-white/20 glass-effect">
+                          BinCard
+                        </span>
+                        <span className="text-xs text-white/90 font-medium bg-black/20 px-2 py-1 rounded-md backdrop-blur-sm">
+                          Yakında
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-2 sm:space-y-3">
+                        <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 drop-shadow-lg">
+                          {placeholderTitles[index]}
+                        </h3>
+                        <p className="text-sm text-white/95 leading-relaxed drop-shadow-md line-clamp-2 sm:line-clamp-3">
+                          {placeholderTexts[index]}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Coming Soon badge */}
+                    <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 opacity-50">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center glass-effect">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </section>
