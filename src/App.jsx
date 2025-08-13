@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AuthService from './services/auth.service';
+import DotNavigation from './components/common/DotNavigation';
 
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
@@ -35,6 +36,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Router future={routerFutureConfig}>
+        <DotNavigation />
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />

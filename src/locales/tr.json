@@ -285,6 +285,14 @@
   },
   "settings": {
     "title": "Ayarlar",
+    "description": "Hesap ayarlarınızı yönetin",
+    "profileTab": "Profil",
+    "notificationsTab": "Bildirimler",
+    "appSettingsTab": "Uygulama Ayarları",
+    "accountInfo": "Hesap Bilgileri",
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "changeProfilePhoto": "Profil Fotoğrafını Değiştir",
     "language": "Dil",
     "notifications": "Bildirimler",
     "privacy": "Gizlilik",
@@ -299,6 +307,9 @@
     "loginToViewSettings": "Ayarları görüntülemek ve düzenlemek için lütfen giriş yapın.",
     "viewSettingsOperation": "Ayarları görüntüleme işlemini",
     "freezeAccount": "Hesabı Pasifleştir",
+    "deleteAccount": "Hesabı Sil",
+    "deleteAccountWarning": "Dikkat: Bu işlem geri alınamaz!",
+    "deleteAccountDescription": "Hesabınızı sildiğinizde aşağıdaki veriler kalıcı olarak silinir:",
     "freezeAccountWarning": "Bu işlem hesabınızı geçici olarak pasifleştirecektir.",
     "freezeAccountDescription": "Hesabınızı pasifleştirmek şu anlama gelir:",
     "freezeAccountEffects": {
@@ -308,6 +319,8 @@
       "autoLogout": "Bu işlemle beraber güvenli çıkış yapılacaktır"
     },
     "freezeReason": "Pasifleştirme Sebebi",
+    "freezeDuration": "Dondurma Süresi (Gün)",
+    "freezeDurationLimit": "Minimum 1 gün, maksimum 365 gün",
     "freezeReasonRequired": "Pasifleştirme sebebi seçmeniz gerekiyor",
     "freezeReasons": {
       "security_concern": "Güvenlik Endişesi",
@@ -320,6 +333,7 @@
     "freezeDescriptionPlaceholder": "Hesap pasifleştirme işlemiyle ilgili detaylar...",
     "freezeConfirm": "Hesabı Pasifleştir",
     "freezing": "Pasifleştirme İşlemi...",
+    "deleting": "Siliniyor...",
     "freezeSuccess": "Hesabınız başarıyla geçici olarak pasifleştirildi. Güvenli çıkış yapılıyor...",
     "freezeError": "Hesap pasifleştirme işlemi sırasında bir hata oluştu",
     "alreadyFrozenError": "Hesabınız zaten pasifleştirilmiş durumda",
@@ -364,7 +378,13 @@
     "accountDeleteSuccess": "Hesabınız başarıyla silindi. İyi günler dileriz.",
     "tokenRefreshSuccess": "Token başarıyla yenilendi!",
     "tokenRefreshError": "Token yenilenemedi",
-    "profilePhotoUpdateSuccess": "Profil fotoğrafı başarıyla güncellendi!"
+    "profilePhotoUpdateSuccess": "Profil fotoğrafı başarıyla güncellendi!",
+    "fileSizeTooLarge": "Dosya boyutu 5MB'dan küçük olmalıdır!",
+    "invalidImageFile": "Lütfen geçerli bir resim dosyası seçin!",
+    "phone": "Telefon",
+    "phoneNotSpecified": "Telefon belirtilmemiş",
+    "membershipDate": "Üyelik Tarihi",
+    "unknown": "Bilinmiyor"
   },
   "profile": {
     "title": "Profilim",

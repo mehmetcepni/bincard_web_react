@@ -431,7 +431,7 @@ const Settings = () => {
           console.error('Bildirimler yüklenirken hata oluştu:', err);
           setError('Bildirimler yüklenemedi. Lütfen daha sonra tekrar deneyin.');
           setLoading(false);
-          toast.error('Bildirimler yüklenemedi', {
+          toast.error(t('settings.notificationsLoadError'), {
             position: 'top-center'
           });
         });
@@ -503,7 +503,7 @@ const Settings = () => {
     // Local storage'a kaydet
     localStorage.setItem('theme', theme);
     
-    toast.success(`${theme === 'dark' ? 'Koyu' : 'Açık'} tema aktif edildi!`, {
+    toast.success(theme === 'dark' ? t('settings.darkThemeActivated') : t('settings.lightThemeActivated'), {
       position: 'top-center',
       autoClose: 2000
     });
@@ -534,7 +534,7 @@ const Settings = () => {
   const handleProfileSave = async () => {
     // Veri doğrulama
     if (!profileData.firstName.trim() || !profileData.lastName.trim()) {
-      toast.error('Ad ve soyad alanları boş bırakılamaz!', {
+      toast.error(t('settings.nameRequired'), {
         position: 'top-center',
         autoClose: 3000
       });
@@ -545,7 +545,7 @@ const Settings = () => {
     if (profileData.email && profileData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(profileData.email.trim())) {
-        toast.error('Geçerli bir e-posta adresi girin!', {
+        toast.error(t('settings.validEmailRequired'), {
           position: 'top-center',
           autoClose: 3000
         });
@@ -556,8 +556,8 @@ const Settings = () => {
     setIsSavingProfile(true);
 
     try {
-      console.log('[PROFILE_SAVE] Profil güncelleniyor:', profileData);
-      console.log('[PROFILE_SAVE] Kullanıcı mevcut bilgileri:', user);
+      console.log('[PROFILE_SAVE] Profile updating:', profileData);
+      console.log('[PROFILE_SAVE] Current user info:', user);
 
       const result = await AuthService.updateProfile({
         firstName: profileData.firstName.trim(),
@@ -576,22 +576,22 @@ const Settings = () => {
           email: profileData.email.trim() || user.email
         };
 
-        console.log('[PROFILE_SAVE] Güncellenmiş kullanıcı bilgileri:', updatedUser);
+        console.log('[PROFILE_SAVE] Updated user info:', updatedUser);
         setUser(updatedUser);
         localStorage.setItem('lastKnownProfile', JSON.stringify(updatedUser));
 
         setIsEditingProfile(false);
 
-        toast.success(result.message || 'Profil bilgileriniz başarıyla güncellendi!', {
+        toast.success(result.message || t('settings.profileUpdateSuccess'), {
           position: 'top-center',
           autoClose: 3000
         });
 
         // API'den güncel profil bilgilerini çek
         try {
-          console.log('[PROFILE_SAVE] API\'den güncel profil bilgileri çekiliyor...');
+          console.log('[PROFILE_SAVE] Fetching updated profile from API...');
           const refreshedProfile = await AuthService.getProfile();
-          console.log('[PROFILE_SAVE] API\'den gelen güncel profil:', refreshedProfile);
+          console.log('[PROFILE_SAVE] Updated profile from API:', refreshedProfile);
           
           if (refreshedProfile) {
             setUser(refreshedProfile);
@@ -600,7 +600,7 @@ const Settings = () => {
               lastName: refreshedProfile.lastName || '',
               email: refreshedProfile.email || ''
             });
-            console.log('[PROFILE_SAVE] State güncellendi');
+            console.log('[PROFILE_SAVE] State updated');
             localStorage.setItem('lastKnownProfile', JSON.stringify(refreshedProfile));
           }
         } catch (refreshError) {
@@ -627,7 +627,7 @@ const Settings = () => {
       localStorage.removeItem(key);
     });
     
-    toast.success('Önbellek temizlendi!', {
+    toast.success(t('settings.cacheCleared'), {
       position: 'top-center',
       autoClose: 2000
     });
@@ -646,7 +646,7 @@ const Settings = () => {
     setIsFreezing(true);
 
     try {
-      console.log('[SETTINGS] Hesap dondurma başlatılıyor...', {
+      console.log('[SETTINGS] Starting account freeze...', {
         reason: freezeReason,
         duration: freezeDuration + ' gün'
       });
@@ -734,7 +734,7 @@ const Settings = () => {
     setIsUnfreezing(true);
 
     try {
-      console.log('[SETTINGS] Hesap çözme başlatılıyor...', {
+      console.log('[SETTINGS] Starting account unfreeze...', {
         reason: unfreezeReason,
         description: unfreezeDescription.slice(0, 50) + (unfreezeDescription.length > 50 ? '...' : '')
       });
@@ -824,7 +824,7 @@ const Settings = () => {
 
   const validateDeleteForm = () => {
     if (!deleteFormData.password.trim()) {
-      toast.error('Şifre alanı boş olamaz', {
+      toast.error(t('settings.passwordRequired'), {
         position: 'top-center',
         autoClose: 3000
       });
@@ -832,7 +832,7 @@ const Settings = () => {
     }
     
     if (!deleteFormData.reason.trim()) {
-      toast.error('Silme nedeni belirtilmelidir', {
+      toast.error(t('settings.deleteReasonRequired'), {
         position: 'top-center',
         autoClose: 3000
       });
@@ -840,7 +840,7 @@ const Settings = () => {
     }
     
     if (deleteFormData.reason.length > 500) {
-      toast.error('Silme nedeni 500 karakteri geçemez', {
+      toast.error(t('settings.deleteReasonTooLong'), {
         position: 'top-center',
         autoClose: 3000
       });
@@ -848,7 +848,7 @@ const Settings = () => {
     }
     
     if (!deleteFormData.confirmDeletion) {
-      toast.error('Hesap silme işlemini onaylamalısınız', {
+      toast.error(t('settings.confirmDeletionRequired'), {
         position: 'top-center',
         autoClose: 3000
       });
@@ -866,7 +866,7 @@ const Settings = () => {
     setIsDeleting(true);
 
     try {
-      console.log('[SETTINGS] Hesap silme başlatılıyor...', {
+      console.log('[SETTINGS] Starting account deletion...', {
         reason: deleteFormData.reason.slice(0, 50) + (deleteFormData.reason.length > 50 ? '...' : ''),
         confirmDeletion: deleteFormData.confirmDeletion
       });
@@ -880,7 +880,7 @@ const Settings = () => {
       console.log('[SETTINGS] Delete account result:', result);
       
       if (result && result.success) {
-        toast.success(result.message || 'Hesabınız başarıyla silindi. İyi günler dileriz.', {
+        toast.success(result.message || t('settings.accountDeleteSuccess'), {
           position: 'top-center',
           autoClose: 5000
         });
@@ -988,12 +988,12 @@ const Settings = () => {
         const updatedTokenInfo = getTokenInfo();
         setTokenInfo(updatedTokenInfo);
         
-        toast.success('Token başarıyla yenilendi!', {
+        toast.success(t('settings.tokenRefreshSuccess'), {
           position: 'top-center',
           autoClose: 3000
         });
       } else {
-        toast.error(result.message || 'Token yenilenemedi', {
+        toast.error(result.message || t('settings.tokenRefreshError'), {
           position: 'top-center',
           autoClose: 3000
         });
@@ -1716,7 +1716,7 @@ const Settings = () => {
       if (file) {
         // Dosya boyutu kontrolü (5MB)
         if (file.size > 5 * 1024 * 1024) {
-          toast.error('Dosya boyutu 5MB\'dan küçük olmalıdır!', {
+          toast.error(t('settings.fileSizeTooLarge'), {
             position: 'top-center'
           });
           return;
@@ -1724,7 +1724,7 @@ const Settings = () => {
         
         // Dosya tipi kontrolü
         if (!file.type.startsWith('image/')) {
-          toast.error('Lütfen geçerli bir resim dosyası seçin!', {
+          toast.error(t('settings.invalidImageFile'), {
             position: 'top-center'
           });
           return;
@@ -1763,7 +1763,7 @@ const Settings = () => {
             console.warn('Profil bilgileri güncellenemedi:', profileError);
           }
           
-          toast.success('Profil fotoğrafı başarıyla güncellendi!', {
+          toast.success(t('settings.profilePhotoUpdateSuccess'), {
             position: 'top-center',
             autoClose: 3000
           });
@@ -2027,7 +2027,7 @@ const Settings = () => {
               {/* Dondurma süresi */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Dondurma Süresi (Gün) *
+                  {t('settings.freezeDuration')} *
                 </label>
                 <input
                   type="number"
@@ -2039,7 +2039,7 @@ const Settings = () => {
                   placeholder="30"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Minimum 1 gün, maksimum 365 gün
+                  {t('settings.freezeDurationLimit')}
                 </p>
               </div>
             </div>
@@ -2085,7 +2085,7 @@ const Settings = () => {
           {/* Modal Header */}
           <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
             <h2 className="text-xl font-bold text-red-600 dark:text-red-400 flex items-center">
-              🗑️ Hesabı Sil
+              🗑️ {t('settings.deleteAccount')}
             </h2>
             <button
               onClick={closeDeleteModal}
@@ -2109,11 +2109,11 @@ const Settings = () => {
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
-                    ⚠️ Dikkat: Bu işlem geri alınamaz!
+                    ⚠️ {t('settings.deleteAccountWarning')}
                   </h3>
                   <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                     <p>
-                      Hesabınızı sildiğinizde aşağıdaki veriler kalıcı olarak silinir:
+                      {t('settings.deleteAccountDescription')}
                     </p>
                     <ul className="list-disc mt-2 ml-4 space-y-1">
                       <li>Tüm kişisel bilgileriniz</li>
@@ -2201,10 +2201,10 @@ const Settings = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Siliniyor...
+                    {t('settings.deleting')}
                   </>
                 ) : (
-                  <>🗑️ Hesabı Sil</>
+                  <>🗑️ {t('settings.deleteAccount')}</>
                 )}
               </button>
             </div>

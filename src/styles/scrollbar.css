@@ -1,0 +1,150 @@
+/* TUSAŞ sitesi tarzında modern kaydırma çubuğu */
+
+/* Tüm tarayıcılar için kaydırma çubuğu stilleri */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Koyu mod için kaydırma çubuğu */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.4);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Firefox için özel kaydırma çubuğu */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(75, 85, 99, 0.4) transparent;
+}
+
+/* Sağ taraftaki nokta navigasyonu için stil - TUSAŞ sitesi tarzında */
+.dot-navigation {
+  position: fixed;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  z-index: 50;
+}
+
+.dot-navigation button {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(156, 163, 175, 0.4);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.dot-navigation button:hover {
+  background: rgba(0, 91, 172, 0.6);
+  transform: scale(1.2);
+}
+
+.dot-navigation button.active {
+  background: #005bac;
+  transform: scale(1.3);
+}
+
+/* Aktif nokta için özel stil */
+.dot-navigation button.active::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 91, 172, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Nokta üzerinde tooltip - TUSAŞ stili */
+.dot-navigation button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dot-navigation button:hover::after {
+  opacity: 1;
+  visibility: visible;
+  right: 30px;
+}
+
+/* Koyu mod için tooltip */
+.dark .dot-navigation button::after {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Mobil görünüm için */
+@media (max-width: 768px) {
+  .dot-navigation {
+    display: none;
+  }
+}

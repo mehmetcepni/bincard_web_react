@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 import 'react-toastify/dist/ReactToastify.css';
 import AuthService from '../../services/auth.service';
 import WalletService from '../../services/wallet.service';
@@ -288,16 +289,7 @@ const Dashboard = () => {
 
             {/* Language Switcher */}
             <div className="hidden md:flex items-center">
-              <div className="relative">
-                <select
-                  value={i18n.language}
-                  onChange={(e) => i18n.changeLanguage(e.target.value)}
-                  className="bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:border-[#005bac] focus:border-[#005bac] focus:outline-none transition-colors"
-                >
-                  <option value="tr">🇹🇷 TR</option>
-                  <option value="en">🇺🇸 EN</option>
-                </select>
-              </div>
+              <LanguageSwitcher variant="minimal" />
             </div>
 
             {/* User Menu */}
@@ -476,7 +468,7 @@ const Dashboard = () => {
           >
             {/* Modal Header */}
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-                              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Haber Detayı</h2>
+                              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('dashboard.newsDetail')}</h2>
               <button
                 onClick={closeNewsModal}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -994,63 +986,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
     return () => window.removeEventListener('scroll', throttledHandleScroll);
   }, []);
 
-  // Mouse wheel navigation - yavaş geçişler için
-  useEffect(() => {
-    let wheelTimeout;
-    let isWheelNavigating = false;
-
-    const handleWheel = (e) => {
-      // Sadece desktop'ta aktif
-      if (window.innerWidth < 1024) return;
-      
-      // Eğer zaten wheel navigasyonu aktifse, ignore et
-      if (isWheelNavigating) {
-        e.preventDefault();
-        return;
-      }
-
-      const sections = Object.keys(sectionRefs);
-      const currentIndex = sections.indexOf(activeSection);
-      
-      // Wheel timeout'u temizle
-      clearTimeout(wheelTimeout);
-      
-      // Aşağı kaydırma (deltaY > 0)
-      if (e.deltaY > 0 && currentIndex < sections.length - 1) {
-        e.preventDefault();
-        isWheelNavigating = true;
-        
-        const nextSection = sections[currentIndex + 1];
-        scrollToSection(nextSection);
-        
-        // 1.5 saniye sonra wheel navigasyonunu tekrar aktifleştir
-        wheelTimeout = setTimeout(() => {
-          isWheelNavigating = false;
-        }, 1500);
-      }
-      // Yukarı kaydırma (deltaY < 0)
-      else if (e.deltaY < 0 && currentIndex > 0) {
-        e.preventDefault();
-        isWheelNavigating = true;
-        
-        const prevSection = sections[currentIndex - 1];
-        scrollToSection(prevSection);
-        
-        // 1.5 saniye sonra wheel navigasyonunu tekrar aktifleştir
-        wheelTimeout = setTimeout(() => {
-          isWheelNavigating = false;
-        }, 1500);
-      }
-    };
-
-    // Passive: false ile wheel event'i dinle ki preventDefault çalışsın
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    
-    return () => {
-      window.removeEventListener('wheel', handleWheel);
-      clearTimeout(wheelTimeout);
-    };
-  }, [activeSection]); // activeSection değiştiğinde yeniden attach et
+  // Removed custom mouse wheel navigation to fix scrolling issues
 
   // Section definitions for navigation
   const sections = [
@@ -1139,43 +1075,16 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
   
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      {/* Nokta Navigasyon Menüsü - Desktop */}
-      <div className="dot-navigation fixed right-6 top-1/2 transform -translate-y-1/2 z-50 hidden lg:block">
-        <div className="flex flex-col space-y-3">
-          {sections.map((section, index) => (
-            <div key={section.id} className="relative group">
-              <button
-                onClick={() => scrollToSection(section.id)}
-                data-active={activeSection === section.id}
-                className={`relative w-4 h-4 rounded-full transition-all duration-300 border-2 ${
-                  activeSection === section.id
-                    ? 'bg-[#005bac] border-[#005bac] scale-125'
-                    : 'bg-transparent border-gray-400 dark:border-gray-500 hover:border-[#005bac] hover:scale-110'
-                }`}
-                title={section.label}
-              >
-                {/* İç nokta - aktif durumda */}
-                {activeSection === section.id && (
-                  <div className="absolute inset-1 bg-white rounded-full"></div>
-                )}
-              </button>
-              
-              {/* Tooltip - TUSAŞ stilinde */}
-              <div className="absolute right-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                <div className="bg-[#005bac] text-white text-xs px-3 py-2 rounded-md whitespace-nowrap font-medium shadow-lg">
-                  {section.label}
-                  {/* Ok işareti */}
-                  <div className="absolute left-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-l-4 border-transparent border-l-[#005bac]"></div>
-                </div>
-              </div>
-              
-              {/* Bağlantı çizgisi - TUSAŞ stilinde */}
-              {index < sections.length - 1 && (
-                <div className="connection-line absolute top-full left-1/2 transform -translate-x-1/2 w-px h-3 bg-gray-300 dark:bg-gray-600"></div>
-              )}
-            </div>
-          ))}
-        </div>
+      {/* Simplified Vertical Dot Navigation */}
+      <div className="tusas-dot-navigation hidden lg:block">
+        {sections.map((section) => (
+          <button
+            key={section.id}
+            onClick={() => scrollToSection(section.id)}
+            className={`tusas-dot ${activeSection === section.id ? 'active' : ''}`}
+            title={section.label}
+          />
+        ))}
       </div>
 
       {/* Mobil Navigasyon Menüsü - Bottom Float */}

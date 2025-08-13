@@ -285,6 +285,14 @@
   },
   "settings": {
     "title": "Settings",
+    "description": "Manage your account settings",
+    "profileTab": "Profile",
+    "notificationsTab": "Notifications",
+    "appSettingsTab": "App Settings",
+    "accountInfo": "Account Information",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "changeProfilePhoto": "Change Profile Photo",
     "language": "Language",
     "notifications": "Notifications",
     "privacy": "Privacy",
@@ -299,6 +307,8 @@
     "loginToViewSettings": "Please login to view and edit settings.",
     "viewSettingsOperation": "view settings operation",
     "freezeAccount": "Deactivate Account",
+    "deleteAccount": "Delete Account",
+    "deleteAccountWarning": "Warning: This action cannot be undone!",
         "freezeAccountWarning": "This action will temporarily deactivate your account.",
     "freezeAccountDescription": "Deactivating your account means:",
     "freezeAccountEffects": {
@@ -308,6 +318,8 @@
       "autoLogout": "You will be automatically logged out with this operation"
     },
     "freezeReason": "Deactivation Reason",
+    "freezeDuration": "Freeze Duration (Days)",
+    "freezeDurationLimit": "Minimum 1 day, maximum 365 days",
     "freezeReasonRequired": "You must select a deactivation reason",
     "freezeReasons": {
       "security_concern": "Security Concern",
@@ -320,6 +332,7 @@
     "freezeDescriptionPlaceholder": "Details about account deactivation...",
     "freezeConfirm": "Deactivate Account",
     "freezing": "Deactivating Account...",
+    "deleting": "Deleting...",
     "freezeSuccess": "Your account has been temporarily deactivated. Logging out securely...",
     "freezeError": "An error occurred during account deactivation operation",
     "alreadyFrozenError": "Your account is already deactivated",
@@ -364,7 +377,13 @@
     "accountDeleteSuccess": "Your account has been successfully deleted. Have a good day.",
     "tokenRefreshSuccess": "Token successfully refreshed!",
     "tokenRefreshError": "Token could not be refreshed",
-    "profilePhotoUpdateSuccess": "Profile photo successfully updated!"
+    "profilePhotoUpdateSuccess": "Profile photo successfully updated!",
+    "fileSizeTooLarge": "File size must be less than 5MB!",
+    "invalidImageFile": "Please select a valid image file!",
+    "phone": "Phone",
+    "phoneNotSpecified": "Phone not specified",
+    "membershipDate": "Membership Date",
+    "unknown": "Unknown"
   },
   "profile": {
     "title": "My Profile",

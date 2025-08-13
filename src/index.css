@@ -1297,8 +1297,55 @@ h3 {
 }
 
 /* Responsive nokta navigasyon */
+/* Simplified vertical dot navigation */
+.tusas-dot-navigation {
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 5px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+}
+
+.tusas-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #888;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  border: none;
+}
+
+.tusas-dot.active {
+  background-color: #333;
+  transform: scale(1.3);
+}
+
+.dark .tusas-dot {
+  background-color: #888;
+}
+
+.dark .tusas-dot.active {
+  background-color: #fff;
+}
+
+.tusas-dot:hover {
+  background-color: #555;
+}
+
+.dark .tusas-dot:hover {
+  background-color: #aaa;
+}
+
 @media (max-width: 1024px) {
-  .dot-navigation {
+  .dot-navigation, .tusas-dot-navigation {
     display: none !important;
   }
 }
