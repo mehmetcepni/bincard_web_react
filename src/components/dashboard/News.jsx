@@ -659,14 +659,16 @@ const News = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]">
-        <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl">
+        <div className="animate-pulse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full max-w-6xl">
           {[1, 2, 3, 4, 5, 6].map(i => (
             <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden h-72">
-              <div className="h-40 bg-blue-100"></div>
-              <div className="p-4">
+              <div className="h-64 bg-gradient-to-r from-blue-100 to-blue-200"></div>
+              <div className="p-3">
                 <div className="h-5 bg-blue-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-100 rounded w-2/3 mb-2"></div>
-                <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                <div className="flex justify-between mt-2">
+                  <div className="h-4 bg-blue-100 rounded-full w-1/3"></div>
+                  <div className="h-4 bg-gray-100 rounded-full w-16"></div>
+                </div>
               </div>
             </div>
           ))}
@@ -768,8 +770,8 @@ const News = () => {
           </div>
         </div>
 
-        {/* Campaign Cards - 2 columns layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Campaign Cards - responsive grid layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Error Message */}
           {error && (
             <div className="col-span-full mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -785,12 +787,12 @@ const News = () => {
           {currentPageCampaigns.map(campaign => (
             <div 
               key={campaign.id} 
-              className="bg-white rounded-xl shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1 cursor-pointer" 
+              className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer group" 
               id={`news-card-${campaign.id}`}
               onClick={() => handleViewNewsDetail(campaign.id)}
             >
-              {/* Medya alanı: önce YouTube, sonra video, yoksa resim */}
-              <div className="h-48 overflow-hidden relative flex items-center justify-center bg-black">
+              {/* Medya alanı: önce YouTube, sonra video, yoksa resim - daha büyük ve ön planda */}
+              <div className="h-64 overflow-hidden relative flex items-center justify-center bg-black">
                 {campaign.videoUrl ? (
                   isYouTubeUrl(campaign.videoUrl) ? (
                     <iframe
@@ -799,7 +801,7 @@ const News = () => {
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                       className="w-full h-full"
-                      style={{ minHeight: 192, background: '#000' }}
+                      style={{ minHeight: 256, background: '#000' }}
                     />
                   ) : (
                     <video
@@ -810,19 +812,21 @@ const News = () => {
                     />
                   )
                 ) : (
-                  <NewsImage
-                    src={normalizeImageUrl(campaign.image || campaign.imageUrl, campaign.id) || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}
-                    alt={campaign.title}
-                    className="w-full h-full object-cover"
-                    onLoad={() => {
-                      console.log(`✅ [Haber ${campaign.id}] Resim başarıyla yüklendi: ${campaign.title}`);
-                    }}
-                    onError={(e) => {
-                      console.log(`❌ [Haber ${campaign.id}] Resim yüklenemedi, fallback kullanıldı`);
-                    }}
-                  />
+                  <div className="w-full h-full overflow-hidden">
+                    <NewsImage
+                      src={normalizeImageUrl(campaign.image || campaign.imageUrl, campaign.id) || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'}
+                      alt={campaign.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      onLoad={() => {
+                        console.log(`✅ [Haber ${campaign.id}] Resim başarıyla yüklendi: ${campaign.title}`);
+                      }}
+                      onError={(e) => {
+                        console.log(`❌ [Haber ${campaign.id}] Resim yüklenemedi, fallback kullanıldı`);
+                      }}
+                    />
+                  </div>
                 )}
-                <div className="absolute top-0 right-0 bg-red-500 text-white py-1 px-3 rounded-bl-lg font-bold">
+                <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-pink-600 text-white py-1 px-3 rounded-lg font-bold shadow-lg transform -rotate-2 group-hover:rotate-0 transition-transform duration-300">
                   {campaign.discount}
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent text-white p-3">
@@ -832,14 +836,13 @@ const News = () => {
                 </div>
               </div>
               
-              <div className="p-4">
+              <div className="p-3">
                 <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-lg font-bold text-gray-800 line-clamp-2">{campaign.title}</h2>
+                  <h2 className="text-lg font-bold text-gray-800 line-clamp-2 group-hover:text-blue-600 transition-colors duration-300">{campaign.title}</h2>
                 </div>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{campaign.content}</p>
                 
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                <div className="flex items-center justify-between mt-2">
+                  <span className="inline-block bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 px-3 py-1 rounded-full text-xs font-medium shadow-sm">
                     {campaign.category}
                   </span>
                   
@@ -848,10 +851,10 @@ const News = () => {
                     <button 
                       onClick={(e) => { e.stopPropagation(); likedNews.has(campaign.id) ? handleUnlikeNews(campaign.id, e) : handleLikeNews(campaign.id, e); }}
                       disabled={likingNews.has(campaign.id)}
-                      className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 shadow-sm ${
                         likedNews.has(campaign.id)
-                          ? 'bg-red-500 text-white hover:bg-red-600'
-                          : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600'
+                          ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600 transform hover:scale-105'
+                          : 'bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 transform hover:scale-105'
                       } ${likingNews.has(campaign.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {likingNews.has(campaign.id) ? (
@@ -865,7 +868,6 @@ const News = () => {
                       )}
                       <span>{campaign.likeCount || 0}</span>
                     </button>
-                    {/* 'Haberi Gör' butonunu kaldırdık, kart tıklanabilir oldu */}
                   </div>
                 </div>
               </div>

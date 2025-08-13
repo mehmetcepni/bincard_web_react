@@ -1212,7 +1212,7 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
               // Loading kartları
               Array.from({ length: 4 }).map((_, index) => (
                 <div key={index} className="animate-pulse">
-                  <div className="h-64 sm:h-72 bg-gray-200 dark:bg-gray-700 rounded-2xl shadow-lg"></div>
+                  <div className="h-72 sm:h-80 bg-gray-200 dark:bg-gray-700 rounded-2xl shadow-lg"></div>
                 </div>
               ))
             ) : newsData.length > 0 ? (
@@ -1228,55 +1228,52 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                 return (
                   <div 
                     key={news.id} 
-                    className={`group relative h-64 sm:h-72 rounded-2xl overflow-hidden cursor-pointer transform transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 shadow-lg ${gradients[index % 4]} news-card-hover card-glow`}
+                    className={`group relative h-72 sm:h-80 rounded-2xl overflow-hidden cursor-pointer transform transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 shadow-lg news-card-hover card-glow`}
                     onClick={() => onNewsClick && onNewsClick(news)}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    {/* Arka plan resmi - geliştirilmiş opacity */}
-                    <div className="absolute inset-0 opacity-15 group-hover:opacity-25 transition-opacity duration-500">
+                    {/* Haber resmi - tam boyutta ve ön planda */}
+                    <div className="absolute inset-0 w-full h-full">
                       <NewsImageWithFallback 
                         src={news.imageUrl || news.image || news.thumbnail} 
                         alt={news.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />
                     </div>
                     
-                    {/* Gradient overlay - daha yumuşak */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20"></div>
+                    {/* Gradient overlay - daha koyu ve belirgin */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-60 group-hover:opacity-70 transition-opacity duration-300"></div>
                     
-                    {/* İçerik - responsive padding */}
-                    <div className="relative z-10 p-4 sm:p-6 h-full flex flex-col justify-between text-white">
-                      {/* Üst kısım - kategori ve tarih */}
-                      <div className="flex items-center justify-between mb-3 sm:mb-4">
-                        <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/25 backdrop-blur-md text-white text-xs font-semibold rounded-full border border-white/20 shadow-sm glass-effect">
+                    {/* İçerik - sadece başlık ve kategori */}
+                    <div className="relative z-10 p-4 sm:p-6 h-full flex flex-col justify-end text-white">
+                      {/* Kategori */}
+                      <div className="mb-3">
+                        <span className="px-3 py-1.5 bg-white/25 backdrop-blur-md text-white text-xs font-semibold rounded-full border border-white/20 shadow-sm glass-effect">
                           {news.category || news.type || 'BinCard'}
-                        </span>
-                        <span className="text-xs text-white/90 font-medium bg-black/20 px-2 py-1 rounded-md backdrop-blur-sm">
-                          {new Date(news.publishDate || news.createdAt || Date.now()).toLocaleDateString('tr-TR')}
                         </span>
                       </div>
                       
-                      {/* Alt kısım - başlık ve özet - responsive font sizes */}
-                      <div className="space-y-2 sm:space-y-3">
-                        <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 line-clamp-2 leading-tight text-white drop-shadow-lg">
+                      {/* Başlık - daha büyük ve belirgin */}
+                      <div>
+                        <h3 className="text-xl sm:text-2xl font-bold line-clamp-3 leading-tight text-white drop-shadow-lg">
                           {news.title}
                         </h3>
-                        <p className="text-sm text-white/95 line-clamp-2 sm:line-clamp-3 leading-relaxed drop-shadow-md">
-                          {news.summary || news.content || 'BinCard ile ilgili güncel haberler ve duyurular'}
+                        <p className="text-xs text-white/80 mt-2">
+                          {new Date(news.publishDate || news.createdAt || Date.now()).toLocaleDateString('tr-TR')}
                         </p>
                       </div>
                     </div>
                     
-                    {/* Hover efekti - geliştirilmiş */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                    {/* Hover efekti */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
                     
                     {/* Hover border efekti */}
                     <div className="absolute inset-0 border-2 border-white/0 group-hover:border-white/30 rounded-2xl transition-all duration-500"></div>
                     
                     {/* Okuma ikonu - hover'da görünür */}
-                    <div className="absolute top-3 sm:top-4 right-3 sm:right-4 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center glass-effect">
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                      <div className="w-10 h-10 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center glass-effect">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
@@ -1311,36 +1308,35 @@ const DashboardHome = ({ isAuthenticated, walletData, isLoadingWallet, user, onN
                 return (
                   <div 
                     key={index}
-                    className={`group relative h-64 sm:h-72 rounded-2xl overflow-hidden ${gradients[index]} opacity-60 hover:opacity-80 transition-all duration-300 shadow-lg card-glow`}
+                    className={`group relative h-72 sm:h-80 rounded-2xl overflow-hidden ${gradients[index]} opacity-70 hover:opacity-90 transition-all duration-300 shadow-lg card-glow`}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
                     
-                    <div className="relative z-10 p-4 sm:p-6 h-full flex flex-col justify-between text-white">
-                      <div className="flex items-center justify-between mb-3 sm:mb-4">
-                        <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-white/25 backdrop-blur-md text-white text-xs font-semibold rounded-full border border-white/20 glass-effect">
+                    <div className="relative z-10 p-6 h-full flex flex-col justify-end text-white">
+                      {/* Kategori */}
+                      <div className="mb-3">
+                        <span className="px-3 py-1.5 bg-white/25 backdrop-blur-md text-white text-xs font-semibold rounded-full border border-white/20 glass-effect">
                           BinCard
-                        </span>
-                        <span className="text-xs text-white/90 font-medium bg-black/20 px-2 py-1 rounded-md backdrop-blur-sm">
-                          Yakında
                         </span>
                       </div>
                       
-                      <div className="space-y-2 sm:space-y-3">
-                        <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 drop-shadow-lg">
+                      {/* Başlık */}
+                      <div>
+                        <h3 className="text-xl sm:text-2xl font-bold drop-shadow-lg mb-2">
                           {placeholderTitles[index]}
                         </h3>
-                        <p className="text-sm text-white/95 leading-relaxed drop-shadow-md line-clamp-2 sm:line-clamp-3">
-                          {placeholderTexts[index]}
+                        <p className="text-xs text-white/80">
+                          Yakında
                         </p>
                       </div>
                     </div>
                     
                     {/* Coming Soon badge */}
-                    <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 opacity-50">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center glass-effect">
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="absolute bottom-4 right-4 opacity-70">
+                      <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center glass-effect">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>

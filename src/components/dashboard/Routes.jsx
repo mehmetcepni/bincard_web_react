@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import RouteService from '../../services/route.service';
 import StationService from '../../services/station.service';
+import RouteMap from '../common/RouteMap';
 
 const Routes = () => {
   const { t } = useTranslation();
@@ -579,13 +580,25 @@ const Routes = () => {
                 </div>
               )}
               
-              {/* Seçili Yön Durakları */}
+              {/* Harita Görünümü */}
               {selectedDirection && directionsStations.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-md font-medium text-gray-900 mb-3">
                     {RouteService.getDirectionTypeLabel(selectedDirection.directionType)} {t('routes.stationsInDirection')}
                   </h4>
-                  <div className="max-h-60 overflow-y-auto space-y-2">
+                  
+                  {/* Harita */}
+                  <div className="mb-4" id="route-map-container">
+                    <RouteMap 
+                      stations={directionsStations} 
+                      currentLocation={currentLocation}
+                      routeColor={RouteService.getRouteColor(selectedRoute.id)}
+                    />
+                  </div>
+                  
+                  {/* Durak Listesi */}
+                  <div className="max-h-60 overflow-y-auto space-y-2 mt-4">
+                    <h5 className="font-medium text-sm mb-2">{t('routes.stationsList')}</h5>
                     {directionsStations.map((station, index) => (
                       <div key={station.id || index} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
                         <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
@@ -599,6 +612,23 @@ const Routes = () => {
                             </p>
                           )}
                         </div>
+                        {station.latitude && station.longitude && (
+                          <button 
+                            className="text-blue-600 hover:text-blue-800 p-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Haritaya odaklan
+                              const mapElement = document.getElementById('route-map-container');
+                              if (mapElement) {
+                                mapElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }
+                            }}
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

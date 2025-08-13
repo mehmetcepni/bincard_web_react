@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import StationService from '../../services/station.service';
+import RouteMap from '../common/RouteMap';
 
 const Stations = () => {
   const { t } = useTranslation();
@@ -19,6 +20,7 @@ const Stations = () => {
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [selectedStation, setSelectedStation] = useState(null);
   const [stationRoutes, setStationRoutes] = useState([]);
+  const [showStationMap, setShowStationMap] = useState(false);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(0);
@@ -277,6 +279,7 @@ const Stations = () => {
   // Durak detaylarını görüntüle
   const viewStationDetails = async (station) => {
     setSelectedStation(station);
+    setShowStationMap(false);
     
     // Duraktan geçen rotaları getir
     try {
@@ -374,8 +377,12 @@ const Stations = () => {
           {station.latitude && station.longitude && (
             <button
               onClick={() => {
-                const url = `https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}`;
-                window.open(url, '_blank');
+                // Durak detayını aç ve haritayı göster
+                viewStationDetails(station);
+                // Kısa bir gecikme ile modal açıldıktan sonra harita görünümünü aç
+                setTimeout(() => {
+                  setShowStationMap(true);
+                }, 300);
               }}
               className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
             >
@@ -616,7 +623,10 @@ const Stations = () => {
                   {selectedStation.name}
                 </h2>
                 <button
-                  onClick={() => setSelectedStation(null)}
+                  onClick={() => {
+                    setSelectedStation(null);
+                    setShowStationMap(false);
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -624,6 +634,17 @@ const Stations = () => {
                   </svg>
                 </button>
               </div>
+              
+              {/* Harita Görünümü */}
+              {showStationMap && selectedStation.latitude && selectedStation.longitude && (
+                <div className="mb-4" id="station-map-container">
+                  <RouteMap 
+                    stations={[selectedStation]} 
+                    currentLocation={currentLocation}
+                    routeColor="#3B82F6"
+                  />
+                </div>
+              )}
               
               <div className="space-y-4">
                 <div>
@@ -686,12 +707,12 @@ const Stations = () => {
                 {selectedStation.latitude && selectedStation.longitude && (
                   <button
                     onClick={() => {
-                      const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedStation.latitude},${selectedStation.longitude}`;
-                      window.open(url, '_blank');
+                      // Harita görünümünü aç/kapa
+                      setShowStationMap(prev => !prev);
                     }}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors station-directions-button"
                   >
-                    🗺️ {t('stations.directions')}
+                    🗺️ {showStationMap ? t('stations.hideMap') : t('stations.directions')}
                   </button>
                 )}
               </div>
